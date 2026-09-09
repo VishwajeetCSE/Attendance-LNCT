@@ -1,181 +1,115 @@
-﻿// background.js - Service Worker for LNCT Attendance Helper v2.0
-// Smart flow: detect session state, auto-login, redirect to attendance, show % badge.
+﻿// background.js v3.0 — LNCT Attendance Helper
+// Supports: LNCT University (accsoft.lnctu.ac.in) + LNCT College (portal.lnct.ac.in)
 
-// ─────────────────────────────────────────────────────────
-// CONSTANTS - IMPORTANT: Update LOGIN_URL if your portal URL differs
-// ─────────────────────────────────────────────────────────
-const ATTENDANCE_URL = "https://accsoft.lnctu.ac.in/AccSoft2/Parents/StuAttendanceStatus.aspx";
-const LOGIN_URL      = "https://accsoft.lnctu.ac.in/AccSoft2/StudentLogin.aspx";
-const PING_ALARM_NAME      = "session-ping";
-const PING_INTERVAL_MINUTES = 4;
+const PORTALS = {
+  university: {
+    login: "https://accsoft.lnctu.ac.in/AccSoft2/StudentLogin.aspx",
+    attendance: "https://accsoft.lnctu.ac.in/AccSoft2/Parents/StuAttendanceStatus.aspx",
+    domain: "accsoft.lnctu.ac.in"
+  },
+  college: {
+    login: "https://portal.lnct.ac.in/Accsoft2/studentLogin.aspx",
+    attendance: "https://portal.lnct.ac.in/Accsoft2/Parents/StuAttendanceStatus.aspx",
+    domain: "portal.lnct.ac.in"
+  }
+};
 
-// ─────────────────────────────────────────────────────────
-// Startup
-// ─────────────────────────────────────────────────────────
-chrome.runtime.onInstalled.addListener(() => {
-  console.log("[LNCT] Extension installed v2.0");
-  setupPingAlarm();
-  updateBadgeFromStorage();
-});
+const PING_ALARM = "session-ping";
+const PING_INTERVAL = 4;
 
-chrome.runtime.onStartup.addListener(() => {
-  setupPingAlarm();
-  updateBadgeFromStorage();
-});
+// ── Startup ──
+chrome.runtime.onInstalled.addListener(() => { setupPingAlarm(); updateBadgeFromStorage(); });
+chrome.runtime.onStartup.addListener(() => { setupPingAlarm(); updateBadgeFromStorage(); });
 
-// ─────────────────────────────────────────────────────────
-// Badge helpers
-// ─────────────────────────────────────────────────────────
+// ── Badge ──
 function setBadge(text, color) {
   chrome.action.setBadgeText({ text: text || "" });
   chrome.action.setBadgeBackgroundColor({ color: color || "#1d4ed8" });
 }
-
 function updateBadgeFromStorage() {
-  chrome.storage.local.get("attendancePercent", (data) => {
-    if (data.attendancePercent != null) {
-      const pct = Math.round(data.attendancePercent);
-      const color = pct >= 75 ? "#16a34a" : pct >= 60 ? "#d97706" : "#dc2626";
-      setBadge(pct + "%", color);
+  chrome.storage.local.get("attendancePercent", (d) => {
+    if (d.attendancePercent != null) {
+      const p = Math.round(d.attendancePercent);
+      setBadge(p + "%", p >= 75 ? "#16a34a" : p >= 60 ? "#d97706" : "#dc2626");
     }
   });
 }
 
-// ─────────────────────────────────────────────────────────
-// Alarm — session keep-alive ping
-// ─────────────────────────────────────────────────────────
+// ── Alarm ──
 function setupPingAlarm() {
-  chrome.alarms.get(PING_ALARM_NAME, (existing) => {
-    if (!existing) {
-      chrome.alarms.create(PING_ALARM_NAME, {
-        delayInMinutes: PING_INTERVAL_MINUTES,
-        periodInMinutes: PING_INTERVAL_MINUTES
-      });
-    }
+  chrome.alarms.get(PING_ALARM, (ex) => {
+    if (!ex) chrome.alarms.create(PING_ALARM, { delayInMinutes: PING_INTERVAL, periodInMinutes: PING_INTERVAL });
   });
 }
-
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name !== PING_ALARM_NAME) return;
-  chrome.storage.sync.get(["username", "password", "keepAlive"], (data) => {
-    if (!data.username || !data.password || !data.keepAlive) return;
-    pingSession();
+  if (alarm.name !== PING_ALARM) return;
+  chrome.storage.sync.get(["username", "password", "keepAlive", "portal"], (d) => {
+    if (!d.username || !d.password || !d.keepAlive) return;
+    const portal = PORTALS[d.portal || "university"];
+    pingSession(portal.attendance);
   });
 });
-
-async function pingSession() {
+async function pingSession(url) {
   try {
-    const res = await fetch(ATTENDANCE_URL, { method: "GET", credentials: "include" });
-    console.log("[LNCT] Ping:", res.status, res.url);
-    // If ping landed on login page → session expired, clear badge
-    if (res.url.includes("Login") || res.url.includes("login")) {
-      setBadge("!", "#dc2626");
-    }
-  } catch (e) {
-    console.warn("[LNCT] Ping failed:", e.message);
-  }
+    const r = await fetch(url, { method: "GET", credentials: "include" });
+    if (r.url.toLowerCase().includes("login")) setBadge("!", "#dc2626");
+  } catch(e) { console.warn("[LNCT] Ping error:", e.message); }
 }
 
-// ─────────────────────────────────────────────────────────
-// TAB WATCHER — redirect to attendance after successful login
-// ─────────────────────────────────────────────────────────
+// ── Tab watcher: redirect to attendance after login ──
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete" || !tab.url) return;
-
-  chrome.storage.local.get("redirectAfterLogin", (data) => {
-    if (!data.redirectAfterLogin) return;
-
+  chrome.storage.local.get(["redirectAfterLogin", "targetAttendanceUrl"], (d) => {
+    if (!d.redirectAfterLogin) return;
     const url = tab.url;
-    // If the tab is no longer on the login page and still on the LNCT domain
-    const isLoginPage = url.includes("StudentLogin") || url.includes("Login.aspx");
-    const isLnctSite  = url.includes("accsoft.lnctu.ac.in");
-    const isAlreadyAttendance = url.includes("StuAttendanceStatus");
-
-    if (isLnctSite && !isLoginPage && !isAlreadyAttendance) {
-      // Successfully logged in and landed on some dashboard → redirect to attendance
-      console.log("[LNCT] Login success detected, redirecting to attendance...");
-      chrome.storage.local.remove("redirectAfterLogin");
-      chrome.tabs.update(tabId, { url: ATTENDANCE_URL });
-    } else if (isAlreadyAttendance) {
-      // Already on attendance page — clean up flag
-      chrome.storage.local.remove("redirectAfterLogin");
+    const isLogin = url.toLowerCase().includes("login");
+    const isLnct = url.includes("lnct.ac.in");
+    const isAttendance = url.toLowerCase().includes("attendance") || url.toLowerCase().includes("stuattendancestatus");
+    if (isLnct && !isLogin && !isAttendance) {
+      chrome.storage.local.remove(["redirectAfterLogin"]);
+      const target = d.targetAttendanceUrl || PORTALS.university.attendance;
+      chrome.tabs.update(tabId, { url: target });
+    } else if (isAttendance) {
+      chrome.storage.local.remove(["redirectAfterLogin"]);
     }
   });
 });
 
-// ─────────────────────────────────────────────────────────
-// MESSAGE LISTENER — from popup.js / content scripts
-// ─────────────────────────────────────────────────────────
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-
-  // ── "View Attendance" button clicked ──
-  if (message.action === "openAttendance") {
-    handleOpenAttendance();
-    sendResponse({ success: true });
+// ── Messages ──
+chrome.runtime.onMessage.addListener((msg, sender, reply) => {
+  if (msg.action === "openAttendance")  { handleOpenAttendance(); reply({ success: true }); }
+  if (msg.action === "attendanceData")  {
+    chrome.storage.local.set({ attendancePercent: msg.percent, subjects: msg.subjects || [], profileImage: msg.profileImage || null, studentName: msg.studentName || null, lastUpdated: Date.now() });
+    const p = Math.round(msg.percent);
+    setBadge(p + "%", p >= 75 ? "#16a34a" : p >= 60 ? "#d97706" : "#dc2626");
+    reply({ success: true });
   }
-
-  // ── Attendance % received from scraper content script ──
-  if (message.action === "attendanceData") {
-    const pct = message.percent;
-    chrome.storage.local.set({ attendancePercent: pct, lastUpdated: Date.now() });
-    const rounded = Math.round(pct);
-    const color = rounded >= 75 ? "#16a34a" : rounded >= 60 ? "#d97706" : "#dc2626";
-    setBadge(rounded + "%", color);
-    console.log("[LNCT] Attendance %:", pct);
-    sendResponse({ success: true });
-  }
-
-  // ── Alarm controls ──
-  if (message.action === "startPing") {
-    setupPingAlarm();
-    sendResponse({ success: true });
-  }
-
-  if (message.action === "stopPing") {
-    chrome.alarms.clear(PING_ALARM_NAME);
-    sendResponse({ success: true });
-  }
-
+  if (msg.action === "startPing") { setupPingAlarm(); reply({ success: true }); }
+  if (msg.action === "stopPing")  { chrome.alarms.clear(PING_ALARM); reply({ success: true }); }
   return true;
 });
 
-// ─────────────────────────────────────────────────────────
-// Smart open — check session, then navigate or login
-// ─────────────────────────────────────────────────────────
+// ── Smart open: check session → navigate or login ──
 async function handleOpenAttendance() {
-  try {
-    // Silently fetch attendance page; follow redirects
-    const res = await fetch(ATTENDANCE_URL, {
-      method: "GET",
-      credentials: "include",
-      redirect: "follow"
-    });
-
-    const finalUrl = res.url;
-    const isRedirectedToLogin = finalUrl.includes("Login") || finalUrl.includes("login");
-
-    if (!isRedirectedToLogin && res.ok) {
-      // Session is alive — navigate directly to attendance
-      console.log("[LNCT] Session active. Opening attendance.");
-      navigateTo(ATTENDANCE_URL);
-    } else {
-      // Session expired or logged out — need to login first
-      console.log("[LNCT] Session expired. Going to login with redirect flag.");
-      chrome.storage.local.set({ redirectAfterLogin: true });
-      navigateTo(LOGIN_URL);
+  chrome.storage.sync.get(["portal"], async (d) => {
+    const portal = PORTALS[d.portal || "university"];
+    try {
+      const res = await fetch(portal.attendance, { method: "GET", credentials: "include", redirect: "follow" });
+      const isLogin = res.url.toLowerCase().includes("login");
+      if (!isLogin && res.ok) {
+        navigateTo(portal.attendance, portal.domain);
+      } else {
+        chrome.storage.local.set({ redirectAfterLogin: true, targetAttendanceUrl: portal.attendance });
+        navigateTo(portal.login, portal.domain);
+      }
+    } catch(e) {
+      navigateTo(portal.attendance, portal.domain);
     }
-  } catch (err) {
-    console.warn("[LNCT] Could not check session:", err.message);
-    // On network error, just try opening attendance anyway
-    navigateTo(ATTENDANCE_URL);
-  }
+  });
 }
 
-// ─────────────────────────────────────────────────────────
-// Navigation helper — reuse existing LNCT tab or open new
-// ─────────────────────────────────────────────────────────
-function navigateTo(url) {
-  chrome.tabs.query({ url: "https://accsoft.lnctu.ac.in/*" }, (tabs) => {
+function navigateTo(url, domain) {
+  chrome.tabs.query({ url: `https://${domain}/*` }, (tabs) => {
     if (tabs.length > 0) {
       chrome.tabs.update(tabs[0].id, { url, active: true });
       chrome.windows.update(tabs[0].windowId, { focused: true });

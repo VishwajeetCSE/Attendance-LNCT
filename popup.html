@@ -1,254 +1,347 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>LNCT Attendance</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --bg:#0f172a; --card:#1e293b; --border:#334155;
+      --blue:#3b82f6; --green:#22c55e; --orange:#f59e0b; --red:#ef4444;
+      --text:#e2e8f0; --muted:#94a3b8; --dim:#475569;
+    }
+    body{width:340px;font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;}
 
-    body {
-      width: 300px;
-      font-family: 'Segoe UI', Tahoma, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
+    /* ── HEADER ── */
+    .header{
+      background:linear-gradient(135deg,#1e3a8a,#1d4ed8);
+      padding:12px 14px;
+      display:flex;align-items:center;gap:10px;
     }
+    .lnct-logo{width:42px;height:42px;border-radius:8px;object-fit:contain;background:#fff;padding:2px;flex-shrink:0;}
+    .lnct-logo-fallback{width:42px;height:42px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;color:#1d4ed8;flex-shrink:0;line-height:1.2;text-align:center;}
+    .header-info{flex:1;min-width:0;}
+    .header-title{font-size:13px;font-weight:700;color:#fff;white-space:nowrap;}
+    .header-sub{font-size:10px;color:#93c5fd;margin-top:1px;}
 
-    /* ── Header ── */
-    .header {
-      background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
-      padding: 14px 16px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .logo {
-      width: 38px; height: 38px;
-      background: white;
-      border-radius: 9px;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 13px; color: #1e40af;
-      flex-shrink: 0;
-    }
-    .header-text h1 { font-size: 14px; font-weight: 700; color: white; }
-    .header-text p  { font-size: 11px; color: #93c5fd; margin-top: 1px; }
+    /* Profile chip in header */
+    .profile-chip{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+    .profile-avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.3);background:var(--card);}
+    .profile-initials{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;border:2px solid rgba(255,255,255,0.3);}
 
-    /* ── Big attendance ring ── */
-    .attendance-section {
-      padding: 18px 16px 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
+    /* ── TABS ── */
+    .tabs{display:flex;background:#0f172a;border-bottom:1px solid var(--border);}
+    .tab-btn{flex:1;padding:9px 4px;font-size:11px;font-weight:600;color:var(--muted);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;letter-spacing:0.02em;}
+    .tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
+    .tab-btn:hover:not(.active){color:var(--text);}
 
-    .ring-wrapper {
-      position: relative;
-      width: 110px; height: 110px;
-      margin-bottom: 10px;
-    }
+    /* ── TAB PANELS ── */
+    .tab-panel{display:none;}
+    .tab-panel.active{display:block;}
 
-    .ring-svg {
-      transform: rotate(-90deg);
-      width: 110px; height: 110px;
-    }
+    /* ────────── HOME TAB ────────── */
+    .attendance-ring-section{padding:16px 14px 10px;text-align:center;}
+    .ring-wrap{position:relative;width:120px;height:120px;margin:0 auto 10px;}
+    .ring-svg{transform:rotate(-90deg);width:120px;height:120px;}
+    .ring-bg{fill:none;stroke:var(--card);stroke-width:11;}
+    .ring-fill{fill:none;stroke-width:11;stroke-linecap:round;stroke-dasharray:283;stroke-dashoffset:283;transition:stroke-dashoffset 1.2s ease,stroke .4s;}
+    .ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+    .ring-pct{font-size:26px;font-weight:800;color:#fff;line-height:1;}
+    .ring-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;}
+    .att-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:4px;}
+    .badge-safe{background:#14532d;color:#86efac;}
+    .badge-warn{background:#451a03;color:#fed7aa;}
+    .badge-danger{background:#450a0a;color:#fca5a5;}
+    .badge-unknown{background:var(--card);color:var(--dim);}
+    .last-upd{font-size:10px;color:var(--dim);margin-bottom:8px;}
 
-    .ring-bg { fill: none; stroke: #1e293b; stroke-width: 10; }
-    .ring-fill {
-      fill: none; stroke-width: 10;
-      stroke-linecap: round;
-      stroke-dasharray: 283;
-      stroke-dashoffset: 283;
-      transition: stroke-dashoffset 1s ease, stroke 0.5s;
-    }
+    /* Action buttons */
+    .actions{padding:0 12px 10px;}
+    .btn{width:100%;padding:10px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:7px;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .18s;}
+    .btn-blue{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;}
+    .btn-blue:hover{background:linear-gradient(135deg,#2563eb,#1e40af);transform:translateY(-1px);box-shadow:0 4px 14px rgba(59,130,246,.35);}
+    .btn-ghost{background:var(--card);color:var(--muted);border:1px solid var(--border);font-size:12px;}
+    .btn-ghost:hover{background:var(--border);color:var(--text);}
 
-    .ring-center {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-    }
-    .ring-pct {
-      font-size: 22px; font-weight: 800;
-      color: white;
-      line-height: 1;
-    }
-    .ring-label {
-      font-size: 9px; color: #64748b;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-top: 2px;
-    }
+    /* Divider */
+    .div{border:none;border-top:1px solid var(--border);margin:6px 0;}
 
-    .attendance-status {
-      font-size: 12px;
-      font-weight: 600;
-      padding: 4px 12px;
-      border-radius: 20px;
-      margin-bottom: 6px;
-    }
-    .status-safe   { background: #14532d; color: #86efac; }
-    .status-warn   { background: #451a03; color: #fed7aa; }
-    .status-danger { background: #450a0a; color: #fca5a5; }
-    .status-unknown { background: #1e293b; color: #64748b; }
+    /* Subject bar graph */
+    .subjects-section{padding:10px 12px 12px;}
+    .sec-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+    .no-subjects{text-align:center;font-size:11px;color:var(--dim);padding:10px 0;}
 
-    .last-updated {
-      font-size: 10px; color: #475569;
-      margin-bottom: 4px;
-    }
+    .bar-chart{display:flex;gap:6px;align-items:flex-end;height:90px;padding:0 4px;}
+    .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;}
+    .bar-track{width:100%;flex:1;background:var(--border);border-radius:4px 4px 0 0;position:relative;display:flex;align-items:flex-end;overflow:hidden;min-height:60px;}
+    .bar-fill{width:100%;border-radius:4px 4px 0 0;transition:height 1s ease;min-height:3px;}
+    .bar-pct-label{font-size:8px;font-weight:700;color:var(--text);text-align:center;white-space:nowrap;}
+    .bar-name{font-size:7px;color:var(--muted);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);height:42px;line-height:1.2;}
+    .danger-line{position:absolute;bottom:25%;left:0;right:0;border-top:1px dashed rgba(239,68,68,0.5);z-index:1;}
 
-    /* ── Divider ── */
-    .divider { border: none; border-top: 1px solid #1e293b; margin: 8px 0; }
+    /* Toggles */
+    .toggles{padding:4px 12px 8px;}
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);}
+    .toggle-row:last-child{border-bottom:none;}
+    .toggle-label{font-size:12px;color:var(--muted);}
+    .toggle{position:relative;width:36px;height:20px;flex-shrink:0;}
+    .toggle input{opacity:0;width:0;height:0;}
+    .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--border);border-radius:20px;transition:.3s;}
+    .slider:before{position:absolute;content:"";height:14px;width:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;}
+    input:checked+.slider{background:var(--blue);}
+    input:checked+.slider:before{transform:translateX(16px);}
 
-    /* ── Buttons ── */
-    .actions { padding: 0 12px 10px; }
+    /* Session dot */
+    .footer{padding:7px 12px;display:flex;align-items:center;gap:6px;}
+    .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;flex-shrink:0;}
+    .dot.off{background:var(--dim);animation:none;}
+    .foot-txt{font-size:10px;color:var(--dim);}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-    .btn {
-      width: 100%; padding: 10px 14px;
-      border: none; border-radius: 8px;
-      font-size: 13px; font-weight: 600;
-      cursor: pointer; margin-bottom: 7px;
-      display: flex; align-items: center; justify-content: center; gap: 7px;
-      transition: all 0.18s ease;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-      color: white;
-    }
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #2563eb, #1e40af);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 14px rgba(59,130,246,0.35);
-    }
-    .btn-primary:active { transform: translateY(0); }
+    /* Portal selector */
+    .portal-row{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);}
+    .portal-label{font-size:11px;color:var(--muted);}
+    .portal-select{flex:1;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px;outline:none;}
 
-    .btn-secondary {
-      background: #1e293b; color: #94a3b8;
-      border: 1px solid #334155;
-      font-size: 12px;
-    }
-    .btn-secondary:hover { background: #334155; color: #e2e8f0; }
+    /* ────────── PROFILE TAB ────────── */
+    .profile-section{padding:20px 14px;}
+    .profile-big{text-align:center;margin-bottom:18px;}
+    .profile-big-img{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--blue);margin:0 auto 10px;display:block;}
+    .profile-big-init{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;margin:0 auto 10px;border:3px solid var(--blue);}
+    .profile-name{font-size:16px;font-weight:700;margin-bottom:4px;}
+    .profile-role{font-size:12px;color:var(--muted);}
+    .profile-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:14px;}
+    .stat-card{background:var(--card);border-radius:8px;padding:10px 8px;text-align:center;border:1px solid var(--border);}
+    .stat-val{font-size:18px;font-weight:800;}
+    .stat-label{font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:2px;}
+    .stat-green{color:var(--green);}
+    .stat-orange{color:var(--orange);}
+    .stat-red{color:var(--red);}
+    .profile-info-box{background:var(--card);border-radius:8px;padding:12px;border:1px solid var(--border);margin-top:14px;}
+    .pinfo-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;}
+    .pinfo-row:last-child{border-bottom:none;}
+    .pinfo-key{color:var(--muted);}
+    .pinfo-val{color:var(--text);font-weight:600;}
 
-    /* ── Toggles ── */
-    .toggles { padding: 0 12px; }
-    .toggle-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid #1e293b;
-    }
-    .toggle-row:last-child { border-bottom: none; }
-    .toggle-label { font-size: 12px; color: #94a3b8; }
-
-    .toggle { position: relative; width: 36px; height: 20px; }
-    .toggle input { opacity: 0; width: 0; height: 0; }
-    .slider {
-      position: absolute; cursor: pointer;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: #334155; border-radius: 20px; transition: 0.3s;
-    }
-    .slider:before {
-      position: absolute; content: "";
-      height: 14px; width: 14px;
-      left: 3px; bottom: 3px;
-      background: white; border-radius: 50%; transition: 0.3s;
-    }
-    input:checked + .slider { background: #3b82f6; }
-    input:checked + .slider:before { transform: translateX(16px); }
-
-    /* ── Footer ── */
-    .footer {
-      padding: 8px 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .session-dot {
-      width: 7px; height: 7px;
-      border-radius: 50%; background: #22c55e;
-      animation: pulse 2s infinite; flex-shrink: 0;
-    }
-    .session-dot.off { background: #475569; animation: none; }
-    .session-text { font-size: 10px; color: #475569; margin-left: 5px; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
-
-    .no-data-msg {
-      text-align: center;
-      color: #475569;
-      font-size: 11px;
-      padding: 4px 0 8px;
-    }
+    /* ────────── ABOUT TAB ────────── */
+    .about-section{padding:14px;}
+    .about-card{background:var(--card);border-radius:10px;padding:14px;border:1px solid var(--border);margin-bottom:10px;}
+    .dev-avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;margin:0 auto 10px;}
+    .dev-name{text-align:center;font-size:15px;font-weight:700;margin-bottom:3px;}
+    .dev-role{text-align:center;font-size:11px;color:var(--muted);margin-bottom:12px;}
+    .social-btns{display:flex;gap:8px;}
+    .social-btn{flex:1;padding:8px;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:.2s;}
+    .btn-linkedin{background:#0a66c2;color:#fff;}
+    .btn-linkedin:hover{background:#085597;}
+    .btn-github{background:#333;color:#fff;}
+    .btn-github:hover{background:#555;}
+    .team-section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+    .team-member{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+    .team-member:last-child{border-bottom:none;}
+    .team-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#059669,#0d9488);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0;}
+    .team-info{flex:1;min-width:0;}
+    .team-name{font-size:12px;font-weight:600;}
+    .team-role{font-size:10px;color:var(--muted);}
+    .team-gh{font-size:10px;padding:4px 8px;background:#333;color:#fff;border-radius:5px;cursor:pointer;border:none;transition:.2s;}
+    .team-gh:hover{background:#555;}
+    .app-info{text-align:center;font-size:10px;color:var(--dim);margin-top:10px;line-height:1.7;}
+    .portal-tag{display:inline-block;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:9px;margin:2px;color:var(--muted);}
   </style>
 </head>
 <body>
 
-  <!-- Header -->
-  <div class="header">
-    <div class="logo">LN</div>
-    <div class="header-text">
-      <h1>LNCT Attendance</h1>
-      <p>Quick Access Portal</p>
-    </div>
+<!-- HEADER -->
+<div class="header">
+  <img id="lnctLogo" class="lnct-logo" src="icons/lnct_logo.png" alt="LNCT" onerror="this.style.display='none';document.getElementById('lnctLogoFb').style.display='flex'"/>
+  <div id="lnctLogoFb" class="lnct-logo-fallback" style="display:none">LNCT</div>
+  <div class="header-info">
+    <div class="header-title">LNCT Attendance</div>
+    <div class="header-sub" id="headerPortalLabel">University Portal</div>
+  </div>
+  <div class="profile-chip">
+    <img id="headerAvatar" class="profile-avatar" src="" alt="" style="display:none"/>
+    <div id="headerInitials" class="profile-initials">👤</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn active" data-tab="home">🏠 Home</button>
+  <button class="tab-btn" data-tab="profile">👤 Profile</button>
+  <button class="tab-btn" data-tab="about">ℹ️ About</button>
+</div>
+
+<!-- ────── HOME TAB ────── -->
+<div class="tab-panel active" id="tab-home">
+
+  <!-- Portal selector -->
+  <div class="portal-row">
+    <span class="portal-label">📡 Portal:</span>
+    <select class="portal-select" id="portalSelect">
+      <option value="university">LNCT University (accsoft.lnctu.ac.in)</option>
+      <option value="college">LNCT College (portal.lnct.ac.in)</option>
+    </select>
   </div>
 
-  <!-- Attendance Ring -->
-  <div class="attendance-section">
-    <div class="ring-wrapper">
+  <!-- Attendance ring -->
+  <div class="attendance-ring-section">
+    <div class="ring-wrap">
       <svg class="ring-svg" viewBox="0 0 100 100">
         <circle class="ring-bg" cx="50" cy="50" r="45"/>
         <circle class="ring-fill" id="ringFill" cx="50" cy="50" r="45"/>
       </svg>
       <div class="ring-center">
         <div class="ring-pct" id="pctText">--</div>
-        <div class="ring-label">Attendance</div>
+        <div class="ring-lbl">Attendance</div>
       </div>
     </div>
-
-    <div class="attendance-status status-unknown" id="statusBadge">Loading...</div>
-    <div class="last-updated" id="lastUpdated"></div>
-    <div class="no-data-msg" id="noDataMsg" style="display:none">
-      Click "View Attendance" to load your data.
-    </div>
+    <div class="att-badge badge-unknown" id="attBadge">No data yet</div>
+    <div class="last-upd" id="lastUpd"></div>
   </div>
 
-  <hr class="divider" />
-
-  <!-- Main Actions -->
+  <!-- Buttons -->
   <div class="actions">
-    <button class="btn btn-primary" id="btnAttendance">
-      📊 View Attendance
-    </button>
-    <button class="btn btn-secondary" id="btnOptions">
-      ⚙️ Manage Credentials
-    </button>
+    <button class="btn btn-blue" id="btnAttendance">📊 View Attendance</button>
+    <button class="btn btn-ghost" id="btnOptions">⚙️ Manage Credentials</button>
   </div>
 
-  <hr class="divider" />
+  <hr class="div"/>
+
+  <!-- Subject Bar Graph -->
+  <div class="subjects-section">
+    <div class="sec-title">📈 Subject-wise Attendance</div>
+    <div id="barChart" class="bar-chart"></div>
+    <div id="noSubjects" class="no-subjects">Open attendance page to load subject data.</div>
+  </div>
+
+  <hr class="div"/>
 
   <!-- Toggles -->
   <div class="toggles">
     <div class="toggle-row">
       <span class="toggle-label">🔄 Keep Session Alive</span>
-      <label class="toggle">
-        <input type="checkbox" id="toggleKeepAlive" />
-        <span class="slider"></span>
-      </label>
+      <label class="toggle"><input type="checkbox" id="toggleKeepAlive"/><span class="slider"></span></label>
     </div>
     <div class="toggle-row">
       <span class="toggle-label">⚡ Auto-Login</span>
-      <label class="toggle">
-        <input type="checkbox" id="toggleAutoLogin" />
-        <span class="slider"></span>
-      </label>
+      <label class="toggle"><input type="checkbox" id="toggleAutoLogin"/><span class="slider"></span></label>
     </div>
   </div>
 
-  <!-- Footer Session Status -->
+  <!-- Session status -->
   <div class="footer">
-    <div style="display:flex;align-items:center;">
-      <div class="session-dot" id="sessionDot"></div>
-      <span class="session-text" id="sessionText">Checking session...</span>
+    <div class="dot" id="sessionDot"></div>
+    <span class="foot-txt" id="sessionTxt">Checking...</span>
+  </div>
+</div>
+
+<!-- ────── PROFILE TAB ────── -->
+<div class="tab-panel" id="tab-profile">
+  <div class="profile-section">
+    <div class="profile-big">
+      <img id="profileBigImg" class="profile-big-img" src="" alt="" style="display:none"/>
+      <div id="profileBigInit" class="profile-big-init">👤</div>
+      <div class="profile-name" id="profileName">Student</div>
+      <div class="profile-role" id="profilePortalBadge">LNCT University</div>
+    </div>
+
+    <div class="profile-stats">
+      <div class="stat-card">
+        <div class="stat-val stat-green" id="statOverall">--</div>
+        <div class="stat-label">Overall %</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val stat-green" id="statSafe">--</div>
+        <div class="stat-label">Safe Subjects</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val stat-red" id="statLow">--</div>
+        <div class="stat-label">Low Subjects</div>
+      </div>
+    </div>
+
+    <div class="profile-info-box" id="profileInfoBox">
+      <div class="pinfo-row">
+        <span class="pinfo-key">Portal</span>
+        <span class="pinfo-val" id="piPortal">University</span>
+      </div>
+      <div class="pinfo-row">
+        <span class="pinfo-key">Last Updated</span>
+        <span class="pinfo-val" id="piUpdated">--</span>
+      </div>
+      <div class="pinfo-row">
+        <span class="pinfo-key">Subjects Tracked</span>
+        <span class="pinfo-val" id="piSubjectCount">--</span>
+      </div>
     </div>
   </div>
+</div>
 
-  <script src="popup.js"></script>
+<!-- ────── ABOUT TAB ────── -->
+<div class="tab-panel" id="tab-about">
+  <div class="about-section">
+
+    <!-- Developer card -->
+    <div class="about-card">
+      <div class="dev-avatar">VK</div>
+      <div class="dev-name">Vishwajeet Kumar</div>
+      <div class="dev-role">🎓 CSE Student, LNCT University · Developer</div>
+      <div class="social-btns" style="margin-top:12px;">
+        <button class="social-btn btn-linkedin" id="btnLinkedIn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+          LinkedIn
+        </button>
+        <button class="social-btn btn-github" id="btnDevGithub">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+          GitHub
+        </button>
+      </div>
+    </div>
+
+    <!-- Team card -->
+    <div class="about-card">
+      <div class="team-section-title">👥 Team Collaboration</div>
+      <div class="team-member">
+        <div class="team-avatar">VK</div>
+        <div class="team-info">
+          <div class="team-name">Vishwajeet Kumar</div>
+          <div class="team-role">Lead Developer · LNCT University CSE</div>
+        </div>
+        <button class="team-gh" id="btnTeam1">GitHub</button>
+      </div>
+      <div class="team-member">
+        <div class="team-avatar" style="background:linear-gradient(135deg,#059669,#0d9488);">UU</div>
+        <div class="team-info">
+          <div class="team-name">Utpal Upadhyay</div>
+          <div class="team-role">Collaborator · LNCT University</div>
+        </div>
+        <button class="team-gh" id="btnTeam2">GitHub</button>
+      </div>
+    </div>
+
+    <!-- App info -->
+    <div class="about-card">
+      <div class="team-section-title">📦 Extension Info</div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.8;">
+        <div>Version: <strong style="color:var(--text);">3.0.0</strong></div>
+        <div>Built with: <strong style="color:var(--text);">HTML · CSS · JS · Manifest V3</strong></div>
+        <div style="margin-top:6px;">Supported Portals:</div>
+        <div style="margin-top:4px;">
+          <span class="portal-tag">accsoft.lnctu.ac.in</span>
+          <span class="portal-tag">portal.lnct.ac.in</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-info">
+      LNCT Attendance Helper · Built by Vishwajeet Kumar<br/>
+      <span style="color:var(--blue);cursor:pointer;" id="btnRepo">⭐ Star on GitHub</span>
+    </div>
+
+  </div>
+</div>
+
+<script src="popup.js"></script>
 </body>
 </html>

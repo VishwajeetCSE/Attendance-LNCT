@@ -1,182 +1,111 @@
-﻿// content_script.js - Auto-login for LNCT StudentLogin.aspx
-// Triggered on: https://accsoft.lnctu.ac.in/AccSoft2/StudentLogin.aspx
+﻿// content_script.js v3.0 — Auto-login for both LNCT portals
+// LNCT University: accsoft.lnctu.ac.in/AccSoft2/StudentLogin.aspx
+// LNCT College:    portal.lnct.ac.in/Accsoft2/studentLogin.aspx
 
 (function () {
   "use strict";
+  const HOST = window.location.hostname;
+  const IS_COLLEGE = HOST.includes("portal.lnct.ac.in");
+  console.log("[LNCT] Login script loaded on:", HOST, IS_COLLEGE ? "(College)" : "(University)");
 
-  console.log("[LNCT] Login page detected. Content script running.");
-
-  // ── Wait for a DOM element to appear ──
-  function waitForElement(selector, timeout = 6000) {
+  function waitForEl(selector, timeout = 7000) {
     return new Promise((resolve, reject) => {
       const el = document.querySelector(selector);
       if (el) return resolve(el);
-
-      const observer = new MutationObserver(() => {
-        const found = document.querySelector(selector);
-        if (found) {
-          observer.disconnect();
-          resolve(found);
-        }
+      const obs = new MutationObserver(() => {
+        const f = document.querySelector(selector);
+        if (f) { obs.disconnect(); resolve(f); }
       });
-      observer.observe(document.body, { childList: true, subtree: true });
-
-      setTimeout(() => {
-        observer.disconnect();
-        reject(new Error("Timed out waiting for: " + selector));
-      }, timeout);
+      obs.observe(document.body, { childList: true, subtree: true });
+      setTimeout(() => { obs.disconnect(); reject(new Error("Timeout: " + selector)); }, timeout);
     });
   }
 
-  // ── Fill input without triggering framework issues ──
   function fillInput(el, value) {
     el.focus();
-    // Clear existing value
-    el.value = "";
-
-    // Use native setter to bypass React/Vue/ASP.NET event hijacking
-    const nativeSetter = Object.getOwnPropertyDescriptor(
-      window.HTMLInputElement.prototype, "value"
-    );
-    if (nativeSetter && nativeSetter.set) {
-      nativeSetter.set.call(el, value);
-    } else {
-      el.value = value;
-    }
-
-    // Fire all events ASP.NET WebForms might listen to
-    ["input", "change", "keyup", "keydown", "keypress", "blur"].forEach((evt) => {
-      el.dispatchEvent(new Event(evt, { bubbles: true }));
-    });
+    const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value");
+    if (nativeSetter && nativeSetter.set) nativeSetter.set.call(el, value);
+    else el.value = value;
+    ["input", "change", "keyup", "keydown", "blur"].forEach(e => el.dispatchEvent(new Event(e, { bubbles: true })));
     el.blur();
   }
 
-  // ── Main auto-login logic ──
-  async function doAutoLogin(username, password) {
-    // ── Find username field ──
-    // The screenshot shows placeholder "Student's Login Id"
-    // We try multiple selectors in priority order
-    const usernameSelectors = [
-      "input[placeholder*=\"Login Id\" i]",
-      "input[placeholder*=\"Student\" i]",
-      "input[placeholder*=\"username\" i]",
-      "input[placeholder*=\"user\" i]",
-      "input[placeholder*=\"id\" i]",
-      "#txtLoginId",
-      "#txtUsername",
-      "#ctl00_ContentPlaceHolder1_txtLoginId",
-      "input[type=\"text\"]:not([style*=\"display:none\"]):not([style*=\"display: none\"])"
+  async function doLogin(username, password) {
+    // ── College portal (portal.lnct.ac.in) has known IDs from page source ──
+    // IDs: ctl00_cph1_txtStuUser, ctl00_cph1_txtStuPsw, btnStuLogin
+    const userSelectors = IS_COLLEGE ? [
+      "#ctl00_cph1_txtStuUser",
+      "input[id*='txtStuUser']",
+      "input[id*='StuUser']",
+      "input[placeholder*='Login Id' i]",
+      "input[type='text']:not([style*='display:none'])"
+    ] : [
+      "input[placeholder*='Login Id' i]",
+      "input[placeholder*='Student' i]",
+      "input[placeholder*='user' i]",
+      "#txtLoginId", "#txtUsername",
+      "input[id*='user' i]",
+      "input[type='text']:not([style*='display:none'])"
     ];
 
-    // ── Find password field ──
-    const passwordSelectors = [
-      "input[type=\"password\"]",
-      "input[placeholder*=\"password\" i]",
-      "#txtPassword",
-      "#ctl00_ContentPlaceHolder1_txtPassword"
+    const passSelectors = IS_COLLEGE ? [
+      "#ctl00_cph1_txtStuPsw",
+      "input[id*='txtStuPsw']",
+      "input[type='password']"
+    ] : [
+      "input[type='password']",
+      "input[placeholder*='password' i]"
     ];
 
-    // ── Find submit/login button ──
-    const submitSelectors = [
-      "input[value*=\"Login\" i]",
-      "input[value*=\"Sign\" i]",
-      "button[id*=\"login\" i]",
-      "button[id*=\"btn\" i]",
+    const btnSelectors = IS_COLLEGE ? [
+      "#btnStuLogin",
+      "input[id*='btnStuLogin']",
+      "#ctl00_cph1_btnStuProceed",
+      "input[value*='Login' i]",
+      "input[type='submit']"
+    ] : [
+      "input[value*='Login' i]",
+      "button[id*='login' i]",
       "#btnLogin",
-      "#ctl00_ContentPlaceHolder1_btnLogin",
-      "input[type=\"submit\"]",
-      "button[type=\"submit\"]",
-      "a[id*=\"login\" i]"
+      "input[type='submit']",
+      "button[type='submit']"
     ];
 
-    let usernameField = null;
-    let passwordField = null;
-    let submitBtn = null;
+    let userEl = null, passEl = null, btnEl = null;
+    for (const s of userSelectors) { try { const e = document.querySelector(s); if (e && e.offsetParent !== null) { userEl = e; break; } } catch {} }
+    for (const s of passSelectors) { try { const e = document.querySelector(s); if (e) { passEl = e; break; } } catch {} }
+    for (const s of btnSelectors)  { try { const e = document.querySelector(s); if (e) { btnEl = e; break; } } catch {} }
 
-    for (const sel of usernameSelectors) {
-      try {
-        const el = document.querySelector(sel);
-        if (el && el.offsetParent !== null) { // visible
-          usernameField = el;
-          break;
-        }
-      } catch (e) {}
-    }
-
-    for (const sel of passwordSelectors) {
-      try {
-        const el = document.querySelector(sel);
-        if (el) { passwordField = el; break; }
-      } catch (e) {}
-    }
-
-    for (const sel of submitSelectors) {
-      try {
-        const el = document.querySelector(sel);
-        if (el) { submitBtn = el; break; }
-      } catch (e) {}
-    }
-
-    if (!usernameField) {
-      console.error("[LNCT] Username field not found! Check the login page selectors.");
-      console.log("[LNCT] All inputs on page:", document.querySelectorAll("input").length);
-      document.querySelectorAll("input").forEach(el => {
-        console.log("[LNCT] Input:", el.type, "| id:", el.id, "| name:", el.name, "| placeholder:", el.placeholder);
-      });
+    if (!userEl || !passEl) {
+      console.error("[LNCT] Fields not found. Available inputs:");
+      document.querySelectorAll("input").forEach(i => console.log(" →", i.type, "| id:", i.id, "| placeholder:", i.placeholder));
       return;
     }
 
-    if (!passwordField) {
-      console.error("[LNCT] Password field not found!");
-      return;
-    }
+    console.log("[LNCT] Filling:", userEl.id || userEl.placeholder, "/", passEl.id);
+    fillInput(userEl, username);
+    await new Promise(r => setTimeout(r, 300));
+    fillInput(passEl, password);
+    await new Promise(r => setTimeout(r, 500));
 
-    console.log("[LNCT] Found username field:", usernameField.id || usernameField.name || usernameField.placeholder);
-    console.log("[LNCT] Found password field:", passwordField.id || passwordField.name);
-
-    // ── Fill credentials ──
-    fillInput(usernameField, username);
-    await new Promise(r => setTimeout(r, 200));
-    fillInput(passwordField, password);
-    await new Promise(r => setTimeout(r, 400));
-
-    // ── Submit ──
-    if (submitBtn) {
-      console.log("[LNCT] Clicking submit:", submitBtn.id || submitBtn.value || submitBtn.textContent);
-      submitBtn.click();
-
-      // Also try __doPostBack for ASP.NET WebForms
-      if (typeof window.__doPostBack === "function" && submitBtn.name) {
-        try { window.__doPostBack(submitBtn.name, ""); } catch (e) {}
-      }
+    if (btnEl) {
+      console.log("[LNCT] Submitting:", btnEl.id || btnEl.value);
+      btnEl.click();
+      if (typeof window.__doPostBack === "function" && btnEl.name)
+        try { window.__doPostBack(btnEl.name, ""); } catch(e) {}
     } else {
-      console.warn("[LNCT] No submit button found. Trying form.submit()");
-      const form = usernameField.closest("form");
+      const form = userEl.closest("form");
       if (form) form.submit();
     }
   }
 
-  // ── Entry point: load credentials and run ──
+  // ── Run ──
   chrome.storage.sync.get(["username", "password", "autoLogin"], (data) => {
-    if (!data.autoLogin) {
-      console.log("[LNCT] Auto-login is OFF. Skipping.");
-      return;
-    }
-    if (!data.username || !data.password) {
-      console.warn("[LNCT] No credentials saved. Open extension options to set them.");
-      return;
-    }
+    if (!data.autoLogin) { console.log("[LNCT] Auto-login OFF."); return; }
+    if (!data.username || !data.password) { console.warn("[LNCT] No credentials saved."); return; }
 
-    // Wait for password field to appear (page might still be loading)
-    waitForElement("input[type=\"password\"]")
-      .then(() => {
-        console.log("[LNCT] Form ready. Filling credentials...");
-        // Extra short delay so ASP.NET page scripts fully initialize
-        setTimeout(() => doAutoLogin(data.username, data.password), 800);
-      })
-      .catch((err) => {
-        console.error("[LNCT] Login form not found:", err.message);
-      });
+    waitForEl("input[type='password']")
+      .then(() => setTimeout(() => doLogin(data.username, data.password), 800))
+      .catch(e => console.error("[LNCT] Form not ready:", e.message));
   });
-
 })();
