@@ -1,0 +1,51 @@
+﻿{
+  "manifest_version": 3,
+  "name": "LNCT Attendance Helper",
+  "version": "2.0.0",
+  "description": "One-click attendance access with auto-login and live % badge for LNCT University.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    },
+    "default_title": "LNCT Attendance"
+  },
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://accsoft.lnctu.ac.in/AccSoft2/StudentLogin.aspx*",
+        "https://accsoft.lnctu.ac.in/AccSoft2/Student/StudentLogin.aspx*"
+      ],
+      "js": ["content_script.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://accsoft.lnctu.ac.in/AccSoft2/Parents/StuAttendanceStatus.aspx*",
+        "https://accsoft.lnctu.ac.in/AccSoft2/Student/StuAttendanceStatus.aspx*",
+        "https://accsoft.lnctu.ac.in/AccSoft2/*StuAttendanceStatus*"
+      ],
+      "js": ["attendance_scraper.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": [
+    "storage",
+    "alarms",
+    "tabs",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://accsoft.lnctu.ac.in/*"
+  ]
+}

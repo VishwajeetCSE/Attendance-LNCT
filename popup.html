@@ -1,0 +1,254 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LNCT Attendance</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 300px;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo {
+      width: 38px; height: 38px;
+      background: white;
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 13px; color: #1e40af;
+      flex-shrink: 0;
+    }
+    .header-text h1 { font-size: 14px; font-weight: 700; color: white; }
+    .header-text p  { font-size: 11px; color: #93c5fd; margin-top: 1px; }
+
+    /* ── Big attendance ring ── */
+    .attendance-section {
+      padding: 18px 16px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .ring-wrapper {
+      position: relative;
+      width: 110px; height: 110px;
+      margin-bottom: 10px;
+    }
+
+    .ring-svg {
+      transform: rotate(-90deg);
+      width: 110px; height: 110px;
+    }
+
+    .ring-bg { fill: none; stroke: #1e293b; stroke-width: 10; }
+    .ring-fill {
+      fill: none; stroke-width: 10;
+      stroke-linecap: round;
+      stroke-dasharray: 283;
+      stroke-dashoffset: 283;
+      transition: stroke-dashoffset 1s ease, stroke 0.5s;
+    }
+
+    .ring-center {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .ring-pct {
+      font-size: 22px; font-weight: 800;
+      color: white;
+      line-height: 1;
+    }
+    .ring-label {
+      font-size: 9px; color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+
+    .attendance-status {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 6px;
+    }
+    .status-safe   { background: #14532d; color: #86efac; }
+    .status-warn   { background: #451a03; color: #fed7aa; }
+    .status-danger { background: #450a0a; color: #fca5a5; }
+    .status-unknown { background: #1e293b; color: #64748b; }
+
+    .last-updated {
+      font-size: 10px; color: #475569;
+      margin-bottom: 4px;
+    }
+
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1px solid #1e293b; margin: 8px 0; }
+
+    /* ── Buttons ── */
+    .actions { padding: 0 12px 10px; }
+
+    .btn {
+      width: 100%; padding: 10px 14px;
+      border: none; border-radius: 8px;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer; margin-bottom: 7px;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      transition: all 0.18s ease;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #2563eb, #1e40af);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(59,130,246,0.35);
+    }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-secondary {
+      background: #1e293b; color: #94a3b8;
+      border: 1px solid #334155;
+      font-size: 12px;
+    }
+    .btn-secondary:hover { background: #334155; color: #e2e8f0; }
+
+    /* ── Toggles ── */
+    .toggles { padding: 0 12px; }
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #1e293b;
+    }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-label { font-size: 12px; color: #94a3b8; }
+
+    .toggle { position: relative; width: 36px; height: 20px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #334155; border-radius: 20px; transition: 0.3s;
+    }
+    .slider:before {
+      position: absolute; content: "";
+      height: 14px; width: 14px;
+      left: 3px; bottom: 3px;
+      background: white; border-radius: 50%; transition: 0.3s;
+    }
+    input:checked + .slider { background: #3b82f6; }
+    input:checked + .slider:before { transform: translateX(16px); }
+
+    /* ── Footer ── */
+    .footer {
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .session-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%; background: #22c55e;
+      animation: pulse 2s infinite; flex-shrink: 0;
+    }
+    .session-dot.off { background: #475569; animation: none; }
+    .session-text { font-size: 10px; color: #475569; margin-left: 5px; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+    .no-data-msg {
+      text-align: center;
+      color: #475569;
+      font-size: 11px;
+      padding: 4px 0 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">LN</div>
+    <div class="header-text">
+      <h1>LNCT Attendance</h1>
+      <p>Quick Access Portal</p>
+    </div>
+  </div>
+
+  <!-- Attendance Ring -->
+  <div class="attendance-section">
+    <div class="ring-wrapper">
+      <svg class="ring-svg" viewBox="0 0 100 100">
+        <circle class="ring-bg" cx="50" cy="50" r="45"/>
+        <circle class="ring-fill" id="ringFill" cx="50" cy="50" r="45"/>
+      </svg>
+      <div class="ring-center">
+        <div class="ring-pct" id="pctText">--</div>
+        <div class="ring-label">Attendance</div>
+      </div>
+    </div>
+
+    <div class="attendance-status status-unknown" id="statusBadge">Loading...</div>
+    <div class="last-updated" id="lastUpdated"></div>
+    <div class="no-data-msg" id="noDataMsg" style="display:none">
+      Click "View Attendance" to load your data.
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- Main Actions -->
+  <div class="actions">
+    <button class="btn btn-primary" id="btnAttendance">
+      📊 View Attendance
+    </button>
+    <button class="btn btn-secondary" id="btnOptions">
+      ⚙️ Manage Credentials
+    </button>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- Toggles -->
+  <div class="toggles">
+    <div class="toggle-row">
+      <span class="toggle-label">🔄 Keep Session Alive</span>
+      <label class="toggle">
+        <input type="checkbox" id="toggleKeepAlive" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">⚡ Auto-Login</span>
+      <label class="toggle">
+        <input type="checkbox" id="toggleAutoLogin" />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Footer Session Status -->
+  <div class="footer">
+    <div style="display:flex;align-items:center;">
+      <div class="session-dot" id="sessionDot"></div>
+      <span class="session-text" id="sessionText">Checking session...</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

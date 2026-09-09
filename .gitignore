@@ -1,0 +1,17 @@
+﻿# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
+
+# Logs
+*.log
+
+# Node (if any)
+node_modules/
+
+# Keep icons but ignore source jpg
+*.jpg
+*.jpeg

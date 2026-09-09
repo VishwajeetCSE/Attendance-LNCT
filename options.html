@@ -1,0 +1,238 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LNCT Helper - Settings</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      color: white;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    h1 span {
+      display: block;
+      font-size: 12px;
+      font-weight: 400;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .card {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      border: 1px solid #334155;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #e2e8f0;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      border-color: #3b82f6;
+    }
+
+    .password-wrapper {
+      position: relative;
+    }
+
+    .toggle-pw {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 11px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-save {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      margin-bottom: 10px;
+    }
+
+    .btn-save:hover {
+      background: linear-gradient(135deg, #2563eb, #1e40af);
+    }
+
+    .btn-clear {
+      background: #0f172a;
+      color: #ef4444;
+      border: 1px solid #334155;
+    }
+
+    .btn-clear:hover {
+      background: #1e293b;
+    }
+
+    .alert {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 12px;
+      display: none;
+    }
+
+    .alert-success {
+      background: #14532d;
+      color: #86efac;
+      border: 1px solid #16a34a;
+    }
+
+    .alert-error {
+      background: #450a0a;
+      color: #fca5a5;
+      border: 1px solid #dc2626;
+    }
+
+    .warning-box {
+      background: #451a03;
+      border: 1px solid #c2410c;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      color: #fed7aa;
+      display: flex;
+      gap: 8px;
+    }
+
+    .warning-box .icon {
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">LN</div>
+      <h1>
+        LNCT Attendance Helper
+        <span>Extension Settings</span>
+      </h1>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔐 Login Credentials</div>
+
+      <div class="form-group">
+        <label for="username">Student / User ID</label>
+        <input type="text" id="username" placeholder="Enter your student ID" autocomplete="off" />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="password" placeholder="Enter your password" />
+          <button class="toggle-pw" id="togglePw" title="Show/Hide password">👁</button>
+        </div>
+      </div>
+
+      <div class="warning-box">
+        <span class="icon">⚠️</span>
+        <span>
+          Credentials are stored locally in your browser using Chrome's
+          <strong>storage.sync</strong> API. They are <em>not</em> sent to any
+          external server. Only use this on your personal device.
+        </span>
+      </div>
+
+      <div class="alert alert-success" id="alertSuccess">✅ Credentials saved successfully!</div>
+      <div class="alert alert-error" id="alertError">❌ Please enter both username and password.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⚙️ Actions</div>
+      <button class="btn btn-save" id="btnSave">💾 Save Credentials</button>
+      <button class="btn btn-clear" id="btnClear">🗑️ Clear Saved Credentials</button>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
