@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function renderSubjectPies(subjects) {
+  function renderSubjectBars(subjects) {
     const chart = $("subjectChart");
     const empty = $("noSubjects");
     chart.replaceChildren();
@@ -69,20 +69,27 @@ document.addEventListener("DOMContentLoaded", () => {
     subjects.slice(0, 12).forEach((subject) => {
       const percent = Math.round(Number(subject.percent));
       const item = document.createElement("div");
-      item.className = "subject-pie-item";
+      item.className = "subject-bar-item";
       item.title = `${subject.name}: ${percent}%`;
 
-      const pie = document.createElement("div");
-      pie.className = "subject-pie";
-      pie.style.background = `conic-gradient(${statusColor(percent)} ${percent}%, #334155 0)`;
-      const value = document.createElement("span");
-      value.textContent = `${percent}%`;
-      pie.append(value);
-
       const name = document.createElement("div");
-      name.className = "subject-pie-name";
+      name.className = "subject-bar-name";
       name.textContent = subject.name;
-      item.append(pie, name);
+
+      const value = document.createElement("span");
+      value.className = "subject-bar-value";
+      value.textContent = `${percent}%`;
+      value.style.color = statusColor(percent);
+
+      const track = document.createElement("div");
+      track.className = "subject-bar-track";
+      const fill = document.createElement("div");
+      fill.className = "subject-bar-fill";
+      fill.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+      fill.style.background = statusColor(percent);
+      track.append(fill);
+
+      item.append(name, value, track);
       chart.append(item);
     });
   }
@@ -177,8 +184,8 @@ document.addEventListener("DOMContentLoaded", () => {
     $("headerPortalLabel").textContent = college ? "LNCT College Portal" : "LNCT University Portal";
     $("profilePortalBadge").textContent = college ? "LNCT College" : "LNCT University";
     $("piPortal").textContent = college ? "LNCT College" : "LNCT University";
-    $("portalLogo").src = college ? "icons/lnct-college-logo.png" : "icons/lnct_logo.png";
-    $("portalLogo").alt = college ? "LNCT College" : "LNCT University";
+    $("portalLogo").src = "icons/lnct-group-logo.png";
+    $("portalLogo").alt = college ? "LNCT Group — College Portal" : "LNCT Group — University Portal";
   }
 
   function renderSession(session) {
@@ -207,7 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
     $("toggleAutoLogin").checked = Boolean(stored.autoLogin);
     updatePortalLabels(portal);
     renderRing(data.attendancePercent);
-    renderSubjectPies(data.subjects || []);
+    renderSubjectBars(data.subjects || []);
     renderProfile(data);
     $("lastUpd").textContent = timeAgo(data.lastUpdated);
     renderSession(stored.sessionStatus && stored.sessionStatus[portal]);
@@ -249,7 +256,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const saved = await message({ action: "attendanceData", portal: currentPortal, data });
       if (!saved || !saved.success) throw new Error((saved && saved.message) || "Could not save refreshed attendance.");
       renderRing(saved.data.attendancePercent);
-      renderSubjectPies(saved.data.subjects || []);
+      renderSubjectBars(saved.data.subjects || []);
       renderProfile(saved.data);
       $("lastUpd").textContent = timeAgo(saved.data.lastUpdated);
       renderSession({ status: "active" });

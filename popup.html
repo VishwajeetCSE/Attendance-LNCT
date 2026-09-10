@@ -19,7 +19,7 @@
       padding:12px 14px;
       display:flex;align-items:center;gap:10px;
     }
-    .lnct-logo{width:42px;height:42px;border-radius:8px;object-fit:contain;background:#fff;padding:2px;flex-shrink:0;}
+    .lnct-logo{width:122px;height:50px;object-fit:contain;object-position:left center;background:transparent;padding:0;flex-shrink:0;}
     .lnct-logo-fallback{width:42px;height:42px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;color:#1d4ed8;flex-shrink:0;line-height:1.2;text-align:center;}
     .header-info{flex:1;min-width:0;}
     .header-title{font-size:13px;font-weight:700;color:#fff;white-space:nowrap;}
@@ -67,17 +67,17 @@
     /* Divider */
     .div{border:none;border-top:1px solid var(--border);margin:6px 0;}
 
-    /* Subject-wise pie charts */
+    /* Subject-wise horizontal bars */
     .subjects-section{padding:10px 12px 12px;}
     .sec-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
     .no-subjects{text-align:center;font-size:11px;color:var(--dim);padding:10px 0;}
 
-    .subject-chart{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:2px 0;}
-    .subject-pie-item{min-width:0;text-align:center;}
-    .subject-pie{width:46px;height:46px;border-radius:50%;margin:0 auto 5px;display:grid;place-items:center;position:relative;}
-    .subject-pie:after{content:"";position:absolute;inset:7px;border-radius:50%;background:var(--bg);}
-    .subject-pie span{position:relative;z-index:1;font-size:9px;font-weight:800;color:var(--text);}
-    .subject-pie-name{font-size:8px;color:var(--muted);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .subject-chart{display:grid;gap:9px;padding:2px 0;}
+    .subject-bar-item{display:grid;grid-template-columns:minmax(0,1fr) 38px;gap:8px;align-items:center;}
+    .subject-bar-name{font-size:10px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .subject-bar-track{grid-column:1 / -1;height:8px;border-radius:99px;background:var(--border);overflow:hidden;}
+    .subject-bar-fill{height:100%;border-radius:inherit;transition:width .5s ease;}
+    .subject-bar-value{font-size:10px;font-weight:800;text-align:right;}
 
     /* Toggles */
     .toggles{padding:4px 12px 8px;}
@@ -157,10 +157,10 @@
     .attendance-history-row:last-child{border-bottom:none;}
     .floating-action{position:fixed;top:142px;z-index:20;width:40px;height:40px;border:1px solid var(--border);border-radius:50%;display:grid;place-items:center;cursor:pointer;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.28);transition:transform .2s,background .2s;}
     .floating-action:hover{transform:translateY(-2px);}
-    .refresh-fab{left:12px;background:#1d4ed8;font-size:22px;}
+    .refresh-fab{right:12px;background:linear-gradient(135deg,#2563eb,#7c3aed);font-size:22px;}
     .refresh-fab.is-loading span{animation:spin .8s linear infinite;}
     .refresh-fab:disabled{cursor:wait;opacity:.7;}
-    .about-fab{right:12px;background:#334155;font-size:17px;font-weight:800;}
+    .about-fab{top:auto;bottom:14px;left:12px;right:auto;background:linear-gradient(135deg,#ec4899,#f97316);border-color:#fb7185;font-size:17px;font-weight:800;}
     @keyframes spin{to{transform:rotate(360deg)}}
     .about-overlay{position:fixed;inset:0;z-index:60;background:rgba(2,6,23,.78);display:none;align-items:flex-end;}
     .about-overlay.is-open{display:flex;}
@@ -174,7 +174,7 @@
 
 <!-- HEADER -->
 <div class="header">
-  <img id="portalLogo" class="lnct-logo" src="icons/lnct_logo.png" alt="LNCT University"/>
+  <img id="portalLogo" class="lnct-logo" src="icons/lnct-group-logo.png" alt="LNCT Group"/>
   <div id="lnctLogoFb" class="lnct-logo-fallback" style="display:none">LNCT</div>
   <div class="header-info">
     <div class="header-title">LNCT Attendance</div>
@@ -233,7 +233,7 @@
 
   <!-- Subject Bar Graph -->
   <div class="subjects-section">
-    <div class="sec-title">📈 Subject-wise Attendance</div>
+    <div class="sec-title">📊 Subject-wise Attendance</div>
     <div id="subjectChart" class="subject-chart"></div>
     <div id="noSubjects" class="no-subjects">Refresh while signed in to load subject data.</div>
   </div>
