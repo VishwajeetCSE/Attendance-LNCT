@@ -153,8 +153,17 @@
     .app-info{text-align:center;font-size:10px;color:var(--dim);margin-top:10px;line-height:1.7;}
     .portal-tag{display:inline-block;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:9px;margin:2px;color:var(--muted);}
     .attendance-history{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--card);}
+    .attendance-chart{padding:10px 10px 4px;border-bottom:1px solid var(--border);}
+    .attendance-chart svg{display:block;width:100%;height:116px;overflow:visible;}
+    .attendance-chart-grid{stroke:#334155;stroke-width:1;stroke-dasharray:3 3;}
+    .attendance-chart-line{fill:none;stroke:#60a5fa;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round;}
+    .attendance-chart-point{stroke:#0f172a;stroke-width:2;}
+    .attendance-chart-label{fill:var(--muted);font-size:9px;font-family:'Segoe UI',Tahoma,sans-serif;}
     .attendance-history-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;font-size:12px;border-bottom:1px solid var(--border);}
     .attendance-history-row:last-child{border-bottom:none;}
+    .attendance-history-change{font-size:10px;color:var(--muted);margin-left:auto;margin-right:9px;}
+    .attendance-history-change.is-up{color:var(--green);}
+    .attendance-history-change.is-down{color:var(--red);}
     .floating-action{position:fixed;top:142px;z-index:20;width:40px;height:40px;border:1px solid var(--border);border-radius:50%;display:grid;place-items:center;cursor:pointer;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.28);transition:transform .2s,background .2s;}
     .floating-action:hover{transform:translateY(-2px);}
     .refresh-fab{right:12px;background:linear-gradient(135deg,#2563eb,#7c3aed);font-size:22px;}
@@ -174,7 +183,7 @@
 
 <!-- HEADER -->
 <div class="header">
-  <img id="portalLogo" class="lnct-logo" src="icons/lnct-group-logo.png" alt="LNCT Group"/>
+  <img id="portalLogo" class="lnct-logo" src="icons/lnct-college-logo.png" alt="LNCT"/>
   <div id="lnctLogoFb" class="lnct-logo-fallback" style="display:none">LNCT</div>
   <div class="header-info">
     <div class="header-title">LNCT Attendance</div>

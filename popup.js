@@ -25,6 +25,12 @@ document.addEventListener("DOMContentLoaded", () => {
     return percent >= 75 ? "#22c55e" : percent >= 60 ? "#f59e0b" : "#ef4444";
   }
 
+  function formatHistoryTime(timestamp) {
+    const date = new Date(Number(timestamp));
+    if (Number.isNaN(date.getTime())) return "Saved";
+    return date.toLocaleString([], { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  }
+
   function renderRing(percent) {
     const ring = $("ringFill");
     const label = $("attBadge");
@@ -122,24 +128,82 @@ document.addEventListener("DOMContentLoaded", () => {
     const list = $("attendanceHistory");
     const empty = $("noAttendanceHistory");
     list.replaceChildren();
-    if (!records || records.length === 0) {
+    const snapshots = (records || [])
+      .filter((record) => Number.isFinite(Number(record.percent)) && Number.isFinite(Number(record.recordedAt)))
+      .slice(-12);
+    if (snapshots.length === 0) {
       list.style.display = "none";
       empty.style.display = "block";
       return;
     }
     list.style.display = "block";
     empty.style.display = "none";
-    records.slice(-6).reverse().forEach((record) => {
+    const chart = document.createElement("div");
+    chart.className = "attendance-chart";
+    chart.setAttribute("role", "img");
+    chart.setAttribute("aria-label", "Attendance percentage over saved update times");
+    chart.append(createAttendanceChart(snapshots));
+    list.append(chart);
+
+    snapshots.slice(-6).reverse().forEach((record, reversedIndex) => {
+      const index = snapshots.length - 1 - reversedIndex;
+      const previous = snapshots[index - 1];
       const row = document.createElement("div");
       row.className = "attendance-history-row";
       const date = document.createElement("span");
-      date.textContent = timeAgo(record.recordedAt) || "Saved";
+      date.textContent = formatHistoryTime(record.recordedAt);
+      const change = document.createElement("span");
+      change.className = "attendance-history-change";
+      const delta = previous ? Number(record.percent) - Number(previous.percent) : 0;
+      if (previous && delta !== 0) {
+        change.textContent = `${delta > 0 ? "↑" : "↓"} ${Math.abs(delta).toFixed(1)}%`;
+        change.classList.add(delta > 0 ? "is-up" : "is-down");
+      } else {
+        change.textContent = previous ? "No change" : "First record";
+      }
       const value = document.createElement("strong");
       value.textContent = `${Math.round(record.percent)}%`;
       value.style.color = statusColor(record.percent);
-      row.append(date, value);
+      row.append(date, change, value);
       list.append(row);
     });
+  }
+
+  function createAttendanceChart(records) {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 300 116");
+    const values = records.map((record) => Number(record.percent));
+    const minimum = Math.max(0, Math.floor((Math.min(...values) - 3) / 5) * 5);
+    const maximum = Math.min(100, Math.ceil((Math.max(...values) + 3) / 5) * 5);
+    const range = Math.max(5, maximum - minimum);
+    const x = (index) => records.length === 1 ? 150 : 18 + (index * 264) / (records.length - 1);
+    const y = (value) => 12 + ((maximum - value) / range) * 72;
+    const element = (name, attributes) => {
+      const node = document.createElementNS("http://www.w3.org/2000/svg", name);
+      Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, value));
+      return node;
+    };
+    [minimum, maximum].forEach((value) => {
+      svg.append(element("line", { x1: 18, y1: y(value), x2: 282, y2: y(value), class: "attendance-chart-grid" }));
+      const label = element("text", { x: 0, y: y(value) + 3, class: "attendance-chart-label" });
+      label.textContent = `${value}%`;
+      svg.append(label);
+    });
+    const line = element("polyline", { points: records.map((record, index) => `${x(index)},${y(Number(record.percent))}`).join(" "), class: "attendance-chart-line" });
+    svg.append(line);
+    records.forEach((record, index) => {
+      const point = element("circle", { cx: x(index), cy: y(Number(record.percent)), r: 4, fill: statusColor(Number(record.percent)), class: "attendance-chart-point" });
+      const title = element("title", {});
+      title.textContent = `${formatHistoryTime(record.recordedAt)}: ${Number(record.percent).toFixed(1)}%`;
+      point.append(title);
+      svg.append(point);
+    });
+    const first = element("text", { x: 18, y: 108, class: "attendance-chart-label" });
+    first.textContent = formatHistoryTime(records[0].recordedAt);
+    const last = element("text", { x: 282, y: 108, class: "attendance-chart-label", "text-anchor": "end" });
+    last.textContent = records.length > 1 ? formatHistoryTime(records.at(-1).recordedAt) : "";
+    svg.append(first, last);
+    return svg;
   }
 
   function renderProfile(data) {
@@ -184,8 +248,8 @@ document.addEventListener("DOMContentLoaded", () => {
     $("headerPortalLabel").textContent = college ? "LNCT College Portal" : "LNCT University Portal";
     $("profilePortalBadge").textContent = college ? "LNCT College" : "LNCT University";
     $("piPortal").textContent = college ? "LNCT College" : "LNCT University";
-    $("portalLogo").src = "icons/lnct-group-logo.png";
-    $("portalLogo").alt = college ? "LNCT Group — College Portal" : "LNCT Group — University Portal";
+    $("portalLogo").src = "icons/lnct-college-logo.png";
+    $("portalLogo").alt = college ? "LNCT College" : "LNCT University";
   }
 
   function renderSession(session) {
