@@ -1,8 +1,8 @@
 ﻿{
   "manifest_version": 3,
   "name": "LNCT Attendance Helper",
-  "version": "3.0.0",
-  "description": "Auto-login, live attendance %, subject graph & profile — for LNCT University & LNCT College.",
+  "version": "3.2.0",
+  "description": "Private local attendance dashboard with refresh, profile and semester history for LNCT University and College.",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -39,24 +39,27 @@
         "https://portal.lnct.ac.in/Accsoft2/*StuAttendanceStatus*",
         "https://portal.lnct.ac.in/Accsoft2/*ttendance*"
       ],
-      "js": ["attendance_scraper.js"],
+      "js": ["attendance_parser.js", "attendance_scraper.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://accsoft.lnctu.ac.in/AccSoft2/Student/*",
+        "https://accsoft.lnctu.ac.in/AccSoft2/Parents/*",
+        "https://portal.lnct.ac.in/Accsoft2/Student/*",
+        "https://portal.lnct.ac.in/Accsoft2/Parents/*"
+      ],
+      "js": ["attendance_parser.js", "profile_scraper.js"],
       "run_at": "document_idle"
     }
   ],
   "permissions": [
     "storage",
     "alarms",
-    "tabs",
-    "notifications"
+    "tabs"
   ],
   "host_permissions": [
     "https://accsoft.lnctu.ac.in/*",
     "https://portal.lnct.ac.in/*"
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["icons/lnct_logo.png", "icons/lnct_popup_logo.png"],
-      "matches": ["https://accsoft.lnctu.ac.in/*", "https://portal.lnct.ac.in/*"]
-    }
   ]
 }

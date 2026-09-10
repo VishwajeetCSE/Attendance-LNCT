@@ -9,10 +9,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const alertSuccess = document.getElementById("alertSuccess");
   const alertError = document.getElementById("alertError");
 
-  // ── Load saved credentials ──
-  chrome.storage.sync.get(["username", "password"], (data) => {
+  // Do not place the saved password back into the DOM when this page opens.
+  chrome.storage.local.get(["username"], (data) => {
     if (data.username) usernameInput.value = data.username;
-    if (data.password) passwordInput.value = data.password;
   });
 
   // ── Toggle password visibility ──
@@ -42,7 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    chrome.storage.sync.set({ username, password }, () => {
+    chrome.storage.local.set({ username, password }, () => {
       showAlert(alertSuccess);
       console.log("[LNCT Helper] Credentials saved.");
     });
@@ -52,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
   btnClear.addEventListener("click", () => {
     if (!confirm("Are you sure you want to clear saved credentials?")) return;
 
-    chrome.storage.sync.remove(["username", "password"], () => {
+    chrome.storage.local.remove(["username", "password", "autoLogin", "keepAlive"], () => {
       usernameInput.value = "";
       passwordInput.value = "";
       alertSuccess.textContent = "🗑️ Credentials cleared.";

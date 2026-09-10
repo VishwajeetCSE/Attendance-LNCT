@@ -67,18 +67,17 @@
     /* Divider */
     .div{border:none;border-top:1px solid var(--border);margin:6px 0;}
 
-    /* Subject bar graph */
+    /* Subject-wise pie charts */
     .subjects-section{padding:10px 12px 12px;}
     .sec-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
     .no-subjects{text-align:center;font-size:11px;color:var(--dim);padding:10px 0;}
 
-    .bar-chart{display:flex;gap:6px;align-items:flex-end;height:90px;padding:0 4px;}
-    .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;}
-    .bar-track{width:100%;flex:1;background:var(--border);border-radius:4px 4px 0 0;position:relative;display:flex;align-items:flex-end;overflow:hidden;min-height:60px;}
-    .bar-fill{width:100%;border-radius:4px 4px 0 0;transition:height 1s ease;min-height:3px;}
-    .bar-pct-label{font-size:8px;font-weight:700;color:var(--text);text-align:center;white-space:nowrap;}
-    .bar-name{font-size:7px;color:var(--muted);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg);height:42px;line-height:1.2;}
-    .danger-line{position:absolute;bottom:25%;left:0;right:0;border-top:1px dashed rgba(239,68,68,0.5);z-index:1;}
+    .subject-chart{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:2px 0;}
+    .subject-pie-item{min-width:0;text-align:center;}
+    .subject-pie{width:46px;height:46px;border-radius:50%;margin:0 auto 5px;display:grid;place-items:center;position:relative;}
+    .subject-pie:after{content:"";position:absolute;inset:7px;border-radius:50%;background:var(--bg);}
+    .subject-pie span{position:relative;z-index:1;font-size:9px;font-weight:800;color:var(--text);}
+    .subject-pie-name{font-size:8px;color:var(--muted);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
     /* Toggles */
     .toggles{padding:4px 12px 8px;}
@@ -123,11 +122,17 @@
     .pinfo-row:last-child{border-bottom:none;}
     .pinfo-key{color:var(--muted);}
     .pinfo-val{color:var(--text);font-weight:600;}
+    .semester-section{margin-top:14px;}
+    .semester-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px;}
+    .semester-history{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--card);}
+    .semester-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;font-size:12px;border-bottom:1px solid var(--border);}
+    .semester-row:last-child{border-bottom:none;}
+    .no-semester-history{font-size:11px;color:var(--dim);padding:5px 0;line-height:1.4;}
 
     /* ────────── ABOUT TAB ────────── */
     .about-section{padding:14px;}
     .about-card{background:var(--card);border-radius:10px;padding:14px;border:1px solid var(--border);margin-bottom:10px;}
-    .dev-avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;margin:0 auto 10px;}
+    .dev-avatar{width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid var(--blue);display:block;margin:0 auto 10px;background:var(--border);}
     .dev-name{text-align:center;font-size:15px;font-weight:700;margin-bottom:3px;}
     .dev-role{text-align:center;font-size:11px;color:var(--muted);margin-bottom:12px;}
     .social-btns{display:flex;gap:8px;}
@@ -147,13 +152,29 @@
     .team-gh:hover{background:#555;}
     .app-info{text-align:center;font-size:10px;color:var(--dim);margin-top:10px;line-height:1.7;}
     .portal-tag{display:inline-block;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:9px;margin:2px;color:var(--muted);}
+    .attendance-history{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--card);}
+    .attendance-history-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;font-size:12px;border-bottom:1px solid var(--border);}
+    .attendance-history-row:last-child{border-bottom:none;}
+    .floating-action{position:fixed;top:142px;z-index:20;width:40px;height:40px;border:1px solid var(--border);border-radius:50%;display:grid;place-items:center;cursor:pointer;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.28);transition:transform .2s,background .2s;}
+    .floating-action:hover{transform:translateY(-2px);}
+    .refresh-fab{left:12px;background:#1d4ed8;font-size:22px;}
+    .refresh-fab.is-loading span{animation:spin .8s linear infinite;}
+    .refresh-fab:disabled{cursor:wait;opacity:.7;}
+    .about-fab{right:12px;background:#334155;font-size:17px;font-weight:800;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .about-overlay{position:fixed;inset:0;z-index:60;background:rgba(2,6,23,.78);display:none;align-items:flex-end;}
+    .about-overlay.is-open{display:flex;}
+    .about-sheet{width:100%;max-height:calc(100vh - 24px);overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:16px 16px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.35);animation:slide-up .2s ease-out;}
+    .about-sheet-head{padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;}
+    .about-close{width:28px;height:28px;border:none;border-radius:50%;background:var(--card);color:var(--text);font-size:18px;cursor:pointer;}
+    @keyframes slide-up{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
   </style>
 </head>
 <body>
 
 <!-- HEADER -->
 <div class="header">
-  <img id="lnctLogo" class="lnct-logo" src="icons/lnct_logo.png" alt="LNCT" onerror="this.style.display='none';document.getElementById('lnctLogoFb').style.display='flex'"/>
+  <img id="portalLogo" class="lnct-logo" src="icons/lnct_logo.png" alt="LNCT University"/>
   <div id="lnctLogoFb" class="lnct-logo-fallback" style="display:none">LNCT</div>
   <div class="header-info">
     <div class="header-title">LNCT Attendance</div>
@@ -165,11 +186,13 @@
   </div>
 </div>
 
+<button id="btnRefreshCircle" class="floating-action refresh-fab" type="button" title="Refresh live attendance" aria-label="Refresh live attendance"><span>↻</span></button>
+<button id="btnAboutFab" class="floating-action about-fab" type="button" title="About this extension" aria-label="About this extension">i</button>
+
 <!-- TABS -->
 <div class="tabs">
   <button class="tab-btn active" data-tab="home">🏠 Home</button>
   <button class="tab-btn" data-tab="profile">👤 Profile</button>
-  <button class="tab-btn" data-tab="about">ℹ️ About</button>
 </div>
 
 <!-- ────── HOME TAB ────── -->
@@ -211,8 +234,8 @@
   <!-- Subject Bar Graph -->
   <div class="subjects-section">
     <div class="sec-title">📈 Subject-wise Attendance</div>
-    <div id="barChart" class="bar-chart"></div>
-    <div id="noSubjects" class="no-subjects">Open attendance page to load subject data.</div>
+    <div id="subjectChart" class="subject-chart"></div>
+    <div id="noSubjects" class="no-subjects">Refresh while signed in to load subject data.</div>
   </div>
 
   <hr class="div"/>
@@ -275,16 +298,28 @@
         <span class="pinfo-val" id="piSubjectCount">--</span>
       </div>
     </div>
+    <div class="semester-section">
+      <div class="semester-title">Semester attendance records</div>
+      <div id="semesterHistory" class="semester-history"></div>
+      <div id="noSemesterHistory" class="no-semester-history">Choose an earlier semester on the portal and press Show once. The extension saves each selected semester here.</div>
+    </div>
+    <div class="semester-section">
+      <div class="semester-title">Attendance update history</div>
+      <div id="attendanceHistory" class="attendance-history"></div>
+      <div id="noAttendanceHistory" class="no-semester-history">Refresh records a new snapshot whenever your attendance changes.</div>
+    </div>
   </div>
 </div>
 
-<!-- ────── ABOUT TAB ────── -->
-<div class="tab-panel" id="tab-about">
+<!-- ────── FLOATING ABOUT SHEET ────── -->
+<div id="aboutOverlay" class="about-overlay" hidden>
+  <section class="about-sheet" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+    <div class="about-sheet-head"><span id="aboutTitle">About LNCT Attendance</span><button id="btnCloseAbout" class="about-close" type="button" aria-label="Close about section">×</button></div>
   <div class="about-section">
 
     <!-- Developer card -->
     <div class="about-card">
-      <div class="dev-avatar">VK</div>
+      <img class="dev-avatar" src="icons/developer-avatar.png" alt="Vishwajeet Kumar"/>
       <div class="dev-name">Vishwajeet Kumar</div>
       <div class="dev-role">🎓 CSE Student, LNCT University · Developer</div>
       <div class="social-btns" style="margin-top:12px;">
@@ -324,7 +359,7 @@
     <div class="about-card">
       <div class="team-section-title">📦 Extension Info</div>
       <div style="font-size:11px;color:var(--muted);line-height:1.8;">
-        <div>Version: <strong style="color:var(--text);">3.0.0</strong></div>
+        <div>Version: <strong style="color:var(--text);">3.2.0</strong></div>
         <div>Built with: <strong style="color:var(--text);">HTML · CSS · JS · Manifest V3</strong></div>
         <div style="margin-top:6px;">Supported Portals:</div>
         <div style="margin-top:4px;">
@@ -340,8 +375,10 @@
     </div>
 
   </div>
+  </section>
 </div>
 
+<script src="attendance_parser.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>

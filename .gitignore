@@ -15,3 +15,6 @@ node_modules/
 # Keep icons but ignore source jpg
 *.jpg
 *.jpeg
+
+# Local screenshots can contain student IDs or attendance information.
+Screenshot *.png

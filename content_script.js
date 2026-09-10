@@ -100,7 +100,7 @@
   }
 
   // ── Run ──
-  chrome.storage.sync.get(["username", "password", "autoLogin"], (data) => {
+  chrome.storage.local.get(["username", "password", "autoLogin"], (data) => {
     if (!data.autoLogin) { console.log("[LNCT] Auto-login OFF."); return; }
     if (!data.username || !data.password) { console.warn("[LNCT] No credentials saved."); return; }
 

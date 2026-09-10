@@ -1,0 +1,9 @@
+{
+  "name": "lnct-attendance-helper",
+  "private": true,
+  "version": "3.2.0",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node --check background.js && node --check content_script.js && node --check attendance_parser.js && node --check attendance_scraper.js && node --check profile_scraper.js && node --check popup.js && node --check options.js"
+  }
+}

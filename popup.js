@@ -1,200 +1,325 @@
-﻿// popup.js v3.0 — Tabs, ring, subject bar graph, profile, about links
+// Popup state and rendering for LNCT Attendance Helper.
 
-const CIRC = 2 * Math.PI * 45; // SVG ring circumference
+const CIRC = 2 * Math.PI * 45;
 
 document.addEventListener("DOMContentLoaded", () => {
+  const $ = (id) => document.getElementById(id);
+  const portalSelect = $("portalSelect");
+  const refreshButton = $("btnRefreshCircle");
+  let currentPortal = "university";
 
-  // ── Element refs ──
-  const $ = id => document.getElementById(id);
-  const ringFill      = $("ringFill");
-  const pctText       = $("pctText");
-  const attBadge      = $("attBadge");
-  const lastUpd       = $("lastUpd");
-  const barChart      = $("barChart");
-  const noSubjects    = $("noSubjects");
-  const sessionDot    = $("sessionDot");
-  const sessionTxt    = $("sessionTxt");
-  const portalSelect  = $("portalSelect");
-  const headerAvatar  = $("headerAvatar");
-  const headerInitials= $("headerInitials");
-  const headerPortal  = $("headerPortalLabel");
+  const storageGet = (keys) => new Promise((resolve) => chrome.storage.local.get(keys, resolve));
+  const storageSet = (values) => new Promise((resolve) => chrome.storage.local.set(values, resolve));
+  const message = (payload) => new Promise((resolve) => chrome.runtime.sendMessage(payload, resolve));
 
-  // ── Tab switching ──
-  document.querySelectorAll(".tab-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-      btn.classList.add("active");
-      $("tab-" + btn.dataset.tab).classList.add("active");
-    });
-  });
-
-  // ── Time ago ──
-  function timeAgo(ts) {
-    if (!ts) return "";
-    const d = Math.floor((Date.now() - ts) / 1000);
-    if (d < 60) return "Updated just now";
-    if (d < 3600) return `Updated ${Math.floor(d/60)}m ago`;
-    if (d < 86400) return `Updated ${Math.floor(d/3600)}h ago`;
-    return `Updated ${Math.floor(d/86400)}d ago`;
+  function timeAgo(timestamp) {
+    if (!timestamp) return "";
+    const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+    if (seconds < 60) return "Updated just now";
+    if (seconds < 3600) return `Updated ${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `Updated ${Math.floor(seconds / 3600)}h ago`;
+    return `Updated ${Math.floor(seconds / 86400)}d ago`;
   }
 
-  // ── Render ring ──
-  function renderRing(pct) {
-    if (pct == null) {
-      pctText.textContent = "--";
-      ringFill.style.strokeDashoffset = CIRC;
-      ringFill.style.stroke = "#334155";
-      attBadge.textContent = "No data — click View Attendance";
-      attBadge.className = "att-badge badge-unknown";
+  function statusColor(percent) {
+    return percent >= 75 ? "#22c55e" : percent >= 60 ? "#f59e0b" : "#ef4444";
+  }
+
+  function renderRing(percent) {
+    const ring = $("ringFill");
+    const label = $("attBadge");
+    if (!Number.isFinite(percent)) {
+      $("pctText").textContent = "--";
+      ring.style.strokeDashoffset = CIRC;
+      ring.style.stroke = "#334155";
+      label.textContent = "No data — refresh attendance";
+      label.className = "att-badge badge-unknown";
       return;
     }
-    const p = Math.round(pct);
-    pctText.textContent = p + "%";
-    ringFill.style.strokeDasharray  = CIRC;
-    ringFill.style.strokeDashoffset = CIRC - (pct / 100) * CIRC;
-    if (p >= 75) {
-      ringFill.style.stroke = "#22c55e";
-      attBadge.textContent = "✅ Safe — " + p + "%";
-      attBadge.className = "att-badge badge-safe";
-    } else if (p >= 60) {
-      ringFill.style.stroke = "#f59e0b";
-      attBadge.textContent = "⚠️ At Risk — " + p + "%";
-      attBadge.className = "att-badge badge-warn";
+
+    const rounded = Math.round(percent);
+    $("pctText").textContent = `${rounded}%`;
+    ring.style.strokeDasharray = CIRC;
+    ring.style.strokeDashoffset = CIRC - (percent / 100) * CIRC;
+    ring.style.stroke = statusColor(percent);
+    if (rounded >= 75) {
+      label.textContent = `✅ Safe — ${rounded}%`;
+      label.className = "att-badge badge-safe";
+    } else if (rounded >= 60) {
+      label.textContent = `⚠️ At Risk — ${rounded}%`;
+      label.className = "att-badge badge-warn";
     } else {
-      ringFill.style.stroke = "#ef4444";
-      attBadge.textContent = "🚨 Low — " + p + "%";
-      attBadge.className = "att-badge badge-danger";
+      label.textContent = `🚨 Low — ${rounded}%`;
+      label.className = "att-badge badge-danger";
     }
   }
 
-  // ── Render subject bar chart ──
-  function renderBars(subjects) {
+  function renderSubjectPies(subjects) {
+    const chart = $("subjectChart");
+    const empty = $("noSubjects");
+    chart.replaceChildren();
     if (!subjects || subjects.length === 0) {
-      barChart.style.display = "none";
-      noSubjects.style.display = "block";
+      chart.style.display = "none";
+      empty.style.display = "block";
       return;
     }
-    barChart.style.display = "flex";
-    noSubjects.style.display = "none";
-    barChart.innerHTML = "";
 
-    // Show max 10 subjects
-    const list = subjects.slice(0, 10);
-    const maxPct = Math.max(...list.map(s => s.percent), 100);
+    chart.style.display = "grid";
+    empty.style.display = "none";
+    subjects.slice(0, 12).forEach((subject) => {
+      const percent = Math.round(Number(subject.percent));
+      const item = document.createElement("div");
+      item.className = "subject-pie-item";
+      item.title = `${subject.name}: ${percent}%`;
 
-    list.forEach(sub => {
-      const pct = Math.round(sub.percent);
-      const heightPct = (pct / maxPct) * 100;
-      const color = pct >= 75 ? "#22c55e" : pct >= 60 ? "#f59e0b" : "#ef4444";
+      const pie = document.createElement("div");
+      pie.className = "subject-pie";
+      pie.style.background = `conic-gradient(${statusColor(percent)} ${percent}%, #334155 0)`;
+      const value = document.createElement("span");
+      value.textContent = `${percent}%`;
+      pie.append(value);
 
-      const col = document.createElement("div");
-      col.className = "bar-col";
-      col.title = `${sub.name}: ${pct}%`;
-
-      col.innerHTML = `
-        <div class="bar-pct-label">${pct}%</div>
-        <div class="bar-track">
-          <div class="danger-line"></div>
-          <div class="bar-fill" style="height:${heightPct}%;background:${color};"></div>
-        </div>
-        <div class="bar-name">${sub.name}</div>`;
-      barChart.appendChild(col);
+      const name = document.createElement("div");
+      name.className = "subject-pie-name";
+      name.textContent = subject.name;
+      item.append(pie, name);
+      chart.append(item);
     });
   }
 
-  // ── Render profile tab ──
+  function renderSemesterHistory(records) {
+    const list = $("semesterHistory");
+    const empty = $("noSemesterHistory");
+    list.replaceChildren();
+    if (!records || records.length === 0) {
+      list.style.display = "none";
+      empty.style.display = "block";
+      return;
+    }
+    list.style.display = "block";
+    empty.style.display = "none";
+    records.forEach((record) => {
+      const row = document.createElement("div");
+      row.className = "semester-row";
+      const name = document.createElement("span");
+      name.textContent = record.semester;
+      const value = document.createElement("strong");
+      value.textContent = `${Math.round(record.percent)}%`;
+      value.style.color = statusColor(record.percent);
+      row.append(name, value);
+      list.append(row);
+    });
+  }
+
+  function renderAttendanceHistory(records) {
+    const list = $("attendanceHistory");
+    const empty = $("noAttendanceHistory");
+    list.replaceChildren();
+    if (!records || records.length === 0) {
+      list.style.display = "none";
+      empty.style.display = "block";
+      return;
+    }
+    list.style.display = "block";
+    empty.style.display = "none";
+    records.slice(-6).reverse().forEach((record) => {
+      const row = document.createElement("div");
+      row.className = "attendance-history-row";
+      const date = document.createElement("span");
+      date.textContent = timeAgo(record.recordedAt) || "Saved";
+      const value = document.createElement("strong");
+      value.textContent = `${Math.round(record.percent)}%`;
+      value.style.color = statusColor(record.percent);
+      row.append(date, value);
+      list.append(row);
+    });
+  }
+
   function renderProfile(data) {
     const name = data.studentName || "Student";
-    $("profileName").textContent = name;
-    $("statOverall").textContent = data.attendancePercent != null ? Math.round(data.attendancePercent) + "%" : "--";
+    const image = $("profileBigImg");
+    const initial = $("profileBigInit");
+    const headerImage = $("headerAvatar");
+    const headerInitial = $("headerInitials");
+    const initials = name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "👤";
 
-    const subs = data.subjects || [];
-    const safe = subs.filter(s => s.percent >= 75).length;
-    const low  = subs.filter(s => s.percent < 60).length;
-    $("statSafe").textContent = subs.length ? safe : "--";
-    $("statLow").textContent  = subs.length ? low  : "--";
-    $("piSubjectCount").textContent = subs.length || "--";
+    $("profileName").textContent = name;
+    $("statOverall").textContent = Number.isFinite(data.attendancePercent) ? `${Math.round(data.attendancePercent)}%` : "--";
+    const subjects = data.subjects || [];
+    $("statSafe").textContent = subjects.length ? subjects.filter((subject) => subject.percent >= 75).length : "--";
+    $("statLow").textContent = subjects.length ? subjects.filter((subject) => subject.percent < 60).length : "--";
+    $("piSubjectCount").textContent = subjects.length || "--";
     $("piUpdated").textContent = timeAgo(data.lastUpdated) || "--";
 
     if (data.profileImage) {
-      $("profileBigImg").src = data.profileImage;
-      $("profileBigImg").style.display = "block";
-      $("profileBigInit").style.display = "none";
-      headerAvatar.src = data.profileImage;
-      headerAvatar.style.display = "block";
-      headerInitials.style.display = "none";
+      image.src = data.profileImage;
+      image.style.display = "block";
+      initial.style.display = "none";
+      headerImage.src = data.profileImage;
+      headerImage.style.display = "block";
+      headerInitial.style.display = "none";
     } else {
-      const initials = name.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase() || "👤";
-      headerInitials.textContent = initials;
-      $("profileBigInit").textContent = initials;
+      image.removeAttribute("src");
+      image.style.display = "none";
+      initial.textContent = initials;
+      initial.style.display = "flex";
+      headerImage.removeAttribute("src");
+      headerImage.style.display = "none";
+      headerInitial.textContent = initials;
+      headerInitial.style.display = "flex";
+    }
+    renderSemesterHistory(data.semesterRecords || []);
+    renderAttendanceHistory(data.attendanceHistory || []);
+  }
+
+  function updatePortalLabels(portal) {
+    const college = portal === "college";
+    $("headerPortalLabel").textContent = college ? "LNCT College Portal" : "LNCT University Portal";
+    $("profilePortalBadge").textContent = college ? "LNCT College" : "LNCT University";
+    $("piPortal").textContent = college ? "LNCT College" : "LNCT University";
+    $("portalLogo").src = college ? "icons/lnct-college-logo.png" : "icons/lnct_logo.png";
+    $("portalLogo").alt = college ? "LNCT College" : "LNCT University";
+  }
+
+  function renderSession(session) {
+    const status = session && session.status;
+    const dot = $("sessionDot");
+    if (status === "active") {
+      dot.className = "dot";
+      $("sessionTxt").textContent = "Portal session active";
+    } else if (status === "expired") {
+      dot.className = "dot off";
+      $("sessionTxt").textContent = "Session expired — open Attendance to sign in";
+    } else if (status === "error") {
+      dot.className = "dot off";
+      $("sessionTxt").textContent = "Portal unreachable — try Refresh again";
+    } else {
+      dot.className = "dot off";
+      $("sessionTxt").textContent = "Refresh to check your session";
     }
   }
 
-  // ── Load all data ──
-  chrome.storage.sync.get(["keepAlive","autoLogin","username","portal"], syncData => {
-    $("toggleKeepAlive").checked = !!syncData.keepAlive;
-    $("toggleAutoLogin").checked = !!syncData.autoLogin;
-    portalSelect.value = syncData.portal || "university";
-    updatePortalLabel(syncData.portal || "university");
+  async function loadPortal(portal) {
+    const stored = await storageGet(["portalAttendance", "sessionStatus", "keepAlive", "autoLogin", "username"]);
+    const data = (stored.portalAttendance && stored.portalAttendance[portal]) || {};
+    portalSelect.value = portal;
+    $("toggleKeepAlive").checked = Boolean(stored.keepAlive);
+    $("toggleAutoLogin").checked = Boolean(stored.autoLogin);
+    updatePortalLabels(portal);
+    renderRing(data.attendancePercent);
+    renderSubjectPies(data.subjects || []);
+    renderProfile(data);
+    $("lastUpd").textContent = timeAgo(data.lastUpdated);
+    renderSession(stored.sessionStatus && stored.sessionStatus[portal]);
+  }
 
-    const hasCredentials = !!syncData.username;
-    if (syncData.keepAlive && hasCredentials) {
-      sessionDot.classList.remove("off"); sessionTxt.textContent = "Keep-alive active";
-    } else if (!hasCredentials) {
-      sessionDot.classList.add("off"); sessionTxt.textContent = "Save credentials first";
-    } else {
-      sessionDot.classList.add("off"); sessionTxt.textContent = "Keep-alive disabled";
+  function mergeProfile(attendance, profile) {
+    if (!profile) return attendance;
+    return {
+      ...attendance,
+      studentName: profile.studentName || attendance.studentName,
+      profileImage: profile.profileImage || attendance.profileImage,
+      semesterRecords: profile.semesterRecords.length ? profile.semesterRecords : attendance.semesterRecords
+    };
+  }
+
+  async function refresh() {
+    refreshButton.disabled = true;
+    refreshButton.classList.add("is-loading");
+    refreshButton.title = "Refreshing live attendance…";
+    $("sessionTxt").textContent = "Checking the LNCT portal…";
+    try {
+      const liveResult = await message({ action: "refreshActiveAttendance", portal: currentPortal });
+      let data;
+      let source = "live page";
+      if (liveResult && liveResult.success) {
+        data = liveResult.data;
+      } else {
+        const result = await message({ action: "refreshPortalData", portal: currentPortal });
+        if (!result || !result.success) {
+          throw new Error((liveResult && liveResult.message) || (result && result.message) || "Refresh failed. Please try again.");
+        }
+        data = globalThis.LNCTAttendanceParser.parseHtml(result.attendanceHtml, result.attendanceUrl);
+        if (result.profileHtml) {
+          data = mergeProfile(data, globalThis.LNCTAttendanceParser.parseHtml(result.profileHtml, result.profileUrl || result.attendanceUrl));
+        }
+        source = "portal session";
+      }
+      if (!data.hasAttendance) throw new Error("The portal page did not contain a recognised attendance table.");
+      const saved = await message({ action: "attendanceData", portal: currentPortal, data });
+      if (!saved || !saved.success) throw new Error((saved && saved.message) || "Could not save refreshed attendance.");
+      renderRing(saved.data.attendancePercent);
+      renderSubjectPies(saved.data.subjects || []);
+      renderProfile(saved.data);
+      $("lastUpd").textContent = timeAgo(saved.data.lastUpdated);
+      renderSession({ status: "active" });
+      $("sessionTxt").textContent = `Updated from ${source}`;
+    } catch (error) {
+      $("sessionTxt").textContent = error.message;
+    } finally {
+      refreshButton.classList.remove("is-loading");
+      refreshButton.title = "Refresh live attendance";
+      refreshButton.disabled = false;
     }
+  }
 
-    chrome.storage.local.get(["attendancePercent","subjects","profileImage","studentName","lastUpdated"], localData => {
-      renderRing(localData.attendancePercent ?? null);
-      renderBars(localData.subjects || []);
-      renderProfile({ ...localData, ...syncData });
-      if (localData.lastUpdated) lastUpd.textContent = timeAgo(localData.lastUpdated);
+  document.querySelectorAll(".tab-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach((item) => item.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach((item) => item.classList.remove("active"));
+      button.classList.add("active");
+      $(`tab-${button.dataset.tab}`).classList.add("active");
     });
   });
 
-  // ── Portal label ──
-  function updatePortalLabel(val) {
-    if (val === "college") {
-      headerPortal.textContent = "LNCT College Portal";
-      $("profilePortalBadge").textContent = "LNCT College";
-      $("piPortal").textContent = "LNCT College";
-    } else {
-      headerPortal.textContent = "University Portal";
-      $("profilePortalBadge").textContent = "LNCT University";
-      $("piPortal").textContent = "LNCT University";
-    }
-  }
-
-  // ── Portal switch ──
-  portalSelect.addEventListener("change", () => {
-    chrome.storage.sync.set({ portal: portalSelect.value });
-    updatePortalLabel(portalSelect.value);
+  portalSelect.addEventListener("change", async () => {
+    currentPortal = portalSelect.value;
+    await storageSet({ portal: currentPortal });
+    await message({ action: "setActivePortal", portal: currentPortal });
+    loadPortal(currentPortal);
   });
 
-  // ── Buttons ──
+  refreshButton.addEventListener("click", refresh);
   $("btnAttendance").addEventListener("click", () => {
-    $("btnAttendance").textContent = "⏳ Opening...";
+    $("btnAttendance").textContent = "⏳ Opening…";
     $("btnAttendance").disabled = true;
     chrome.runtime.sendMessage({ action: "openAttendance" }, () => window.close());
   });
   $("btnOptions").addEventListener("click", () => { chrome.runtime.openOptionsPage(); window.close(); });
-
-  // ── Toggles ──
-  $("toggleKeepAlive").addEventListener("change", function() {
-    chrome.storage.sync.set({ keepAlive: this.checked });
+  $("toggleKeepAlive").addEventListener("change", async function () {
+    await storageSet({ keepAlive: this.checked });
     chrome.runtime.sendMessage({ action: this.checked ? "startPing" : "stopPing" });
   });
-  $("toggleAutoLogin").addEventListener("change", function() {
-    chrome.storage.sync.set({ autoLogin: this.checked });
-  });
+  $("toggleAutoLogin").addEventListener("change", function () { storageSet({ autoLogin: this.checked }); });
 
-  // ── About links ──
   $("btnLinkedIn").addEventListener("click", () => chrome.tabs.create({ url: "https://www.linkedin.com/in/vishwajeet-kumar-752606237/" }));
   $("btnDevGithub").addEventListener("click", () => chrome.tabs.create({ url: "https://github.com/VishwajeetCSE" }));
   $("btnTeam1").addEventListener("click", () => chrome.tabs.create({ url: "https://github.com/VishwajeetCSE" }));
   $("btnTeam2").addEventListener("click", () => chrome.tabs.create({ url: "https://github.com/utpalupadhyay" }));
   $("btnRepo").addEventListener("click", () => chrome.tabs.create({ url: "https://github.com/VishwajeetCSE/Attendance-LNCT" }));
+
+  function closeAbout() {
+    const overlay = $("aboutOverlay");
+    overlay.classList.remove("is-open");
+    overlay.hidden = true;
+  }
+
+  $("btnAboutFab").addEventListener("click", () => {
+    const overlay = $("aboutOverlay");
+    overlay.hidden = false;
+    overlay.classList.add("is-open");
+    $("btnCloseAbout").focus();
+  });
+  $("btnCloseAbout").addEventListener("click", closeAbout);
+  $("aboutOverlay").addEventListener("click", (event) => {
+    if (event.target === event.currentTarget) closeAbout();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !$("aboutOverlay").hidden) closeAbout();
+  });
+
+  storageGet("portal").then((stored) => {
+    currentPortal = stored.portal === "college" ? "college" : "university";
+    loadPortal(currentPortal);
+  });
 });
