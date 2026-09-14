@@ -1,4 +1,4 @@
-﻿{
+{
   "manifest_version": 3,
   "name": "LNCT Attendance Helper",
   "version": "3.2.0",
@@ -18,7 +18,14 @@
   },
   "options_page": "options.html",
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "lnct-attendance-helper@yourdomain.com",
+      "strict_min_version": "109.0"
+    }
   },
   "content_scripts": [
     {
