@@ -18,13 +18,15 @@
   },
   "options_page": "options.html",
   "background": {
-    "service_worker": "background.js",
     "scripts": ["background.js"]
   },
   "browser_specific_settings": {
     "gecko": {
       "id": "lnct-attendance-helper@yourdomain.com",
-      "strict_min_version": "109.0"
+      "strict_min_version": "126.0",
+      "data_collection_permissions": {
+        "is_data_collection_allowed": false
+      }
     }
   },
   "content_scripts": [
