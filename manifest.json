@@ -23,29 +23,25 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "lnct-attendance-helper@yourdomain.com",
-      "strict_min_version": "140.0",
-      "data_collection_permissions": {
-        "required": ["none"]
-      }
+      "strict_min_version": "109.0"
     }
   },
   "content_scripts": [
     {
       "matches": [
-        "https://lnctu.ac.in*",
-        "https://lnctu.ac.in*",
-        "https://lnct.ac.in*",
-        "https://lnct.ac.in*"
+        "https://lnctu.ac.in",
+        "https://lnctu.ac.in",
+        "https://lnct.ac.in",
+        "https://lnct.ac.in"
       ],
       "js": ["content_script.js"],
       "run_at": "document_idle"
     },
     {
       "matches": [
+        "https://lnctu.ac.in",
         "https://lnctu.ac.in*",
-        "https://lnctu.ac.in*",
-        "https://lnct.ac.in*",
-        "https://lnct.ac.in*",
+        "https://lnct.ac.in",
         "https://lnct.ac.in*"
       ],
       "js": ["attendance_parser.js", "attendance_scraper.js"],
@@ -53,10 +49,10 @@
     },
     {
       "matches": [
-        "https://lnctu.ac.in*",
-        "https://lnctu.ac.in*",
-        "https://lnct.ac.in*",
-        "https://lnct.ac.in*"
+        "https://lnctu.ac.inStudent/*",
+        "https://lnctu.ac.inParents/*",
+        "https://lnct.ac.inStudent/*",
+        "https://lnct.ac.inParents/*"
       ],
       "js": ["attendance_parser.js", "profile_scraper.js"],
       "run_at": "document_idle"
