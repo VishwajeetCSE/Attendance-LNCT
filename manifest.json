@@ -23,40 +23,40 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "lnct-attendance-helper@yourdomain.com",
-      "strict_min_version": "126.0",
+      "strict_min_version": "140.0",
       "data_collection_permissions": {
-        "is_data_collection_allowed": false
+        "required": ["none"]
       }
     }
   },
   "content_scripts": [
     {
       "matches": [
-        "https://accsoft.lnctu.ac.in/AccSoft2/StudentLogin.aspx*",
-        "https://accsoft.lnctu.ac.in/AccSoft2/Student/StudentLogin.aspx*",
-        "https://portal.lnct.ac.in/Accsoft2/studentLogin.aspx*",
-        "https://portal.lnct.ac.in/Accsoft2/StudentLogin.aspx*"
+        "https://lnctu.ac.in*",
+        "https://lnctu.ac.in*",
+        "https://lnct.ac.in*",
+        "https://lnct.ac.in*"
       ],
       "js": ["content_script.js"],
       "run_at": "document_idle"
     },
     {
       "matches": [
-        "https://accsoft.lnctu.ac.in/AccSoft2/Parents/StuAttendanceStatus.aspx*",
-        "https://accsoft.lnctu.ac.in/AccSoft2/*StuAttendanceStatus*",
-        "https://portal.lnct.ac.in/Accsoft2/Parents/StuAttendanceStatus.aspx*",
-        "https://portal.lnct.ac.in/Accsoft2/*StuAttendanceStatus*",
-        "https://portal.lnct.ac.in/Accsoft2/*ttendance*"
+        "https://lnctu.ac.in*",
+        "https://lnctu.ac.in*",
+        "https://lnct.ac.in*",
+        "https://lnct.ac.in*",
+        "https://lnct.ac.in*"
       ],
       "js": ["attendance_parser.js", "attendance_scraper.js"],
       "run_at": "document_idle"
     },
     {
       "matches": [
-        "https://accsoft.lnctu.ac.in/AccSoft2/Student/*",
-        "https://accsoft.lnctu.ac.in/AccSoft2/Parents/*",
-        "https://portal.lnct.ac.in/Accsoft2/Student/*",
-        "https://portal.lnct.ac.in/Accsoft2/Parents/*"
+        "https://lnctu.ac.in*",
+        "https://lnctu.ac.in*",
+        "https://lnct.ac.in*",
+        "https://lnct.ac.in*"
       ],
       "js": ["attendance_parser.js", "profile_scraper.js"],
       "run_at": "document_idle"
@@ -68,7 +68,7 @@
     "tabs"
   ],
   "host_permissions": [
-    "https://accsoft.lnctu.ac.in/*",
-    "https://portal.lnct.ac.in/*"
+    "https://lnctu.ac.in*",
+    "https://lnct.ac.in*"
   ]
 }
